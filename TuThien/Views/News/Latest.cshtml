@@ -1,0 +1,187 @@
+@model IEnumerable<TuThien.Models.CampaignUpdate>
+
+@{
+    ViewData["Title"] = "Tin t?c m?i nh?t";
+    Layout = "~/Views/Shared/MainLayout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/News.css" asp-append-version="true" />
+
+<div class="news-page">
+    <!-- Page Header -->
+    <div class="page-header mb-5">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="page-title">
+                    <i class="bi bi-clock-history me-3"></i>Tin t?c m?i nh?t
+                </h1>
+                <p class="page-subtitle">
+                    Nh?ng c?p nh?t m?i nh?t t? các chi?n d?ch t? thi?n
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="@Url.Action("Index")" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left me-2"></i>Quay l?i t?t c? tin t?c
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Filter Tabs -->
+    <div class="quick-filters mb-4">
+        <a href="@Url.Action("Index")" class="filter-tab">
+            <i class="bi bi-collection me-2"></i>T?t c?
+        </a>
+        <a href="@Url.Action("Index", new { type = "general" })" class="filter-tab">
+            <i class="bi bi-newspaper me-2"></i>Tin t?c chung
+        </a>
+        <a href="@Url.Action("Index", new { type = "financial_report" })" class="filter-tab">
+            <i class="bi bi-bar-chart-line me-2"></i>Báo cáo tài chính
+        </a>
+        <a href="@Url.Action("Latest")" class="filter-tab active">
+            <i class="bi bi-clock-history me-2"></i>M?i nh?t
+        </a>
+    </div>
+
+    <!-- News Timeline -->
+    @if (Model != null && Model.Any())
+    {
+        <div class="latest-news-timeline">
+            @foreach (var update in Model)
+            {
+                var firstImage = "";
+                try
+                {
+                    if (!string.IsNullOrEmpty(update.ImageUrls))
+                    {
+                        var images = System.Text.Json.JsonSerializer.Deserialize<List<string>>(update.ImageUrls);
+                        firstImage = images?.FirstOrDefault() ?? "";
+                    }
+                }
+                catch { }
+
+                var campaignThumb = string.IsNullOrEmpty(firstImage) 
+                    ? (update.Campaign?.ThumbnailUrl ?? Url.Content("~/Images/DefaultPic.png"))
+                    : firstImage;
+
+                var excerpt = update.Content?.Length > 200 
+                    ? System.Text.RegularExpressions.Regex.Replace(update.Content.Substring(0, 200), "<.*?>", "") + "..." 
+                    : System.Text.RegularExpressions.Regex.Replace(update.Content ?? "", "<.*?>", "");
+
+                var timeAgo = "";
+                if (update.CreatedAt.HasValue)
+                {
+                    var span = DateTime.Now - update.CreatedAt.Value;
+                    if (span.TotalMinutes < 1)
+                        timeAgo = "V?a xong";
+                    else if (span.TotalMinutes < 60)
+                        timeAgo = $"{(int)span.TotalMinutes} phút tr??c";
+                    else if (span.TotalHours < 24)
+                        timeAgo = $"{(int)span.TotalHours} gi? tr??c";
+                    else if (span.TotalDays < 7)
+                        timeAgo = $"{(int)span.TotalDays} ngày tr??c";
+                    else if (span.TotalDays < 30)
+                        timeAgo = $"{(int)(span.TotalDays / 7)} tu?n tr??c";
+                    else
+                        timeAgo = update.CreatedAt.Value.ToString("dd/MM/yyyy");
+                }
+
+                <div class="timeline-item">
+                    <div class="timeline-marker">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-line"></div>
+                    </div>
+                    
+                    <div class="timeline-content">
+                        <div class="timeline-date">
+                            <i class="bi bi-clock me-2"></i>@timeAgo
+                        </div>
+                        
+                        <div class="timeline-card" onclick="location.href='@Url.Action("Details", new { id = update.UpdateId })'">
+                            <div class="row g-0">
+                                <div class="col-md-4">
+                                    <div class="timeline-card-image">
+                                        <img src="@campaignThumb" alt="@update.Title"
+                                             onerror="this.src='@Url.Content("~/Images/DefaultPic.png")'" />
+                                        
+                                        <div class="timeline-badge">
+                                            @if (update.Type == "financial_report")
+                                            {
+                                                <span class="badge badge-financial">
+                                                    <i class="bi bi-file-earmark-bar-graph me-1"></i>Báo cáo TC
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-general">
+                                                    <i class="bi bi-newspaper me-1"></i>Tin t?c
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-8">
+                                    <div class="timeline-card-body">
+                                        @if (update.Campaign != null)
+                                        {
+                                            <a href="@Url.Action("Details", "TrangChu", new { id = update.Campaign.CampaignId })" 
+                                               class="campaign-tag" onclick="event.stopPropagation()">
+                                                <i class="bi bi-tag-fill me-1"></i>
+                                                @(update.Campaign.Category?.Name ?? "Chi?n d?ch")
+                                            </a>
+                                        }
+                                        
+                                        <h4 class="timeline-card-title">@update.Title</h4>
+                                        
+                                        <p class="timeline-card-excerpt">@excerpt</p>
+                                        
+                                        <div class="timeline-card-meta">
+                                            <div class="meta-item">
+                                                <i class="bi bi-person-circle me-1"></i>
+                                                <span>@(update.Author?.Username ?? "Admin")</span>
+                                            </div>
+                                            @if (update.Campaign != null)
+                                            {
+                                                <div class="meta-item">
+                                                    <i class="bi bi-megaphone me-1"></i>
+                                                    <span>@update.Campaign.Title</span>
+                                                </div>
+                                            }
+                                        </div>
+                                        
+                                        <div class="timeline-card-footer">
+                                            <a href="@Url.Action("Details", new { id = update.UpdateId })" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               onclick="event.stopPropagation()">
+                                                <i class="bi bi-arrow-right me-1"></i>??c thêm
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <!-- Empty State -->
+        <div class="empty-state text-center py-5">
+            <div class="empty-icon mb-4">
+                <i class="bi bi-inbox" style="font-size: 5rem; color: #dee2e6;"></i>
+            </div>
+            <h4 class="text-muted">Ch?a có tin t?c m?i</h4>
+            <p class="text-muted">H? th?ng ch?a có b?n tin nào. Vui lòng quay l?i sau!</p>
+            <a href="@Url.Action("Index")" class="btn btn-primary mt-3">
+                <i class="bi bi-arrow-left me-2"></i>Quay v? trang tin t?c
+            </a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/news.js" asp-append-version="true"></script>
+}

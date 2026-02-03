@@ -10,7 +10,7 @@
     <div class="container-fluid">
         <nav class="navbar navbar-expand-md">
             <a class="navbar-brand d-flex align-items-center" href="~/">
-                <div class="me-2" style="width:40px;height:40px;background:#0b63b7;border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700">
+                <div class="me-2 logo-icon">
                     TT
                 </div>
                 <div class="ms-1">
@@ -26,9 +26,54 @@
             <div class="collapse navbar-collapse" id="mainNav">
                 <ul class="navbar-nav me-auto mb-2 mb-md-0">
                     <li class="nav-item"><a class="nav-link" asp-area="" asp-controller="TrangChu" asp-action="Index">Trang chủ</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/where-we-work">Nơi chúng tôi làm việc</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/how-to-help">Cách giúp đỡ</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/news">Tin tức</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="News" asp-action="Index">Tin tức</a></li>
+                    
+                    <!-- Dropdown Đóng góp -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-heart me-1"></i>Đóng góp
+                        </a>
+                        <ul class="dropdown-menu dropdown-donate">
+                            <li class="dropdown-header">
+                                <i class="bi bi-info-circle me-2"></i>Thông tin đóng góp
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="/how-to-donate">
+                                    <i class="bi bi-book me-2"></i>
+                                    <div>
+                                        <strong>Hướng dẫn đóng góp</strong>
+                                        <small class="d-block text-muted">Cách thức quyên góp</small>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="/donation-updates">
+                                    <i class="bi bi-bell me-2"></i>
+                                    <div>
+                                        <strong>Cập nhật đóng góp</strong>
+                                        <small class="d-block text-muted">Theo dõi các khoản đóng góp</small>
+                                    </div>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-primary fw-semibold" href="/donate-now">
+                                    <i class="bi bi-cash-coin me-2"></i>
+                                    Quyên góp ngay
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Các danh mục cụ thể
+                        </a>
+                        <ul class="dropdown-menu">
+                            @await Component.InvokeAsync("Sidebar")
+                        </ul>
+                    </li>
                 </ul>
 
                 <form class="d-flex me-3" role="search" method="get" action="/search">

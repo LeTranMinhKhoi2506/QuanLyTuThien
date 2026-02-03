@@ -1,0 +1,311 @@
+@model TuThien.Models.CampaignUpdate
+
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "~/Views/Shared/MainLayout.cshtml";
+    
+    var images = new List<string>();
+    try
+    {
+        if (!string.IsNullOrEmpty(Model.ImageUrls))
+        {
+            images = System.Text.Json.JsonSerializer.Deserialize<List<string>>(Model.ImageUrls) ?? new List<string>();
+        }
+    }
+    catch { }
+    
+    var relatedUpdates = ViewBag.RelatedUpdates as IEnumerable<TuThien.Models.CampaignUpdate>;
+}
+
+<link rel="stylesheet" href="~/css/News.css" asp-append-version="true" />
+
+<div class="news-detail-page">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang ch?</a></li>
+            <li class="breadcrumb-item"><a href="@Url.Action("Index")">Tin t?c</a></li>
+            @if (Model.Campaign != null)
+            {
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Details", "TrangChu", new { id = Model.Campaign.CampaignId })">
+                        @Model.Campaign.Title
+                    </a>
+                </li>
+            }
+            <li class="breadcrumb-item active" aria-current="page">@Model.Title</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <article class="news-detail-card">
+                <!-- Article Header -->
+                <header class="article-header">
+                    <div class="article-type-badge mb-3">
+                        @if (Model.Type == "financial_report")
+                        {
+                            <span class="badge badge-financial-large">
+                                <i class="bi bi-file-earmark-bar-graph me-2"></i>Báo cáo tài chính
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-general-large">
+                                <i class="bi bi-newspaper me-2"></i>Tin t?c chung
+                            </span>
+                        }
+                    </div>
+
+                    <h1 class="article-title">@Model.Title</h1>
+
+                    <div class="article-meta">
+                        <div class="meta-item">
+                            <div class="author-avatar">
+                                <i class="bi bi-person-circle"></i>
+                            </div>
+                            <div>
+                                <div class="author-name">@(Model.Author?.Username ?? "Admin")</div>
+                                <div class="publish-date">
+                                    <i class="bi bi-clock me-1"></i>
+                                    @Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="article-actions">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="shareFacebook()">
+                                <i class="bi bi-facebook me-1"></i>Chia s?
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyLink()">
+                                <i class="bi bi-link-45deg me-1"></i>Sao chép
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Featured Image -->
+                @if (images.Any())
+                {
+                    <div class="featured-image mb-4">
+                        <img src="@images.First()" alt="@Model.Title" class="img-fluid rounded-3 shadow-sm"
+                             onerror="this.src='@Url.Content("~/Images/DefaultPic.png")'" />
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(Model.Campaign?.ThumbnailUrl))
+                {
+                    <div class="featured-image mb-4">
+                        <img src="@Model.Campaign.ThumbnailUrl" alt="@Model.Title" class="img-fluid rounded-3 shadow-sm"
+                             onerror="this.src='@Url.Content("~/Images/DefaultPic.png")'" />
+                    </div>
+                }
+
+                <!-- Article Content -->
+                <div class="article-content">
+                    @Html.Raw(Model.Content?.Replace("\n", "<br/>"))
+                </div>
+
+                <!-- Image Gallery -->
+                @if (images.Count > 1)
+                {
+                    <div class="image-gallery mt-4">
+                        <h4 class="gallery-title">
+                            <i class="bi bi-images me-2"></i>Hình ?nh kèm theo
+                        </h4>
+                        <div class="row g-3">
+                            @foreach (var img in images.Skip(1))
+                            {
+                                <div class="col-md-6">
+                                    <div class="gallery-item">
+                                        <img src="@img" alt="Gallery Image" class="img-fluid rounded-2"
+                                             onclick="openImageModal(this.src)"
+                                             onerror="this.src='@Url.Content("~/Images/DefaultPic.png")'" />
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Campaign Link -->
+                @if (Model.Campaign != null)
+                {
+                    <div class="campaign-link-section mt-5 p-4 bg-light rounded-3">
+                        <h5 class="mb-3">
+                            <i class="bi bi-link-45deg me-2"></i>Chi?n d?ch liên quan
+                        </h5>
+                        <div class="campaign-link-card">
+                            <div class="campaign-link-thumb">
+                                <img src="@(Model.Campaign.ThumbnailUrl ?? Url.Content("~/Images/DefaultPic.png"))" 
+                                     alt="@Model.Campaign.Title"
+                                     onerror="this.src='@Url.Content("~/Images/DefaultPic.png")'" />
+                            </div>
+                            <div class="campaign-link-info">
+                                <h6>@Model.Campaign.Title</h6>
+                                <p class="text-muted mb-2">
+                                    @if (Model.Campaign.Category != null)
+                                    {
+                                        <span class="badge bg-primary me-2">@Model.Campaign.Category.Name</span>
+                                    }
+                                    <span>B?i @(Model.Campaign.Creator?.Username ?? "Unknown")</span>
+                                </p>
+                                <a href="@Url.Action("Details", "TrangChu", new { id = Model.Campaign.CampaignId })" 
+                                   class="btn btn-primary btn-sm">
+                                    <i class="bi bi-arrow-right-circle me-2"></i>Xem chi?n d?ch
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Share Section -->
+                <div class="share-section mt-4">
+                    <h5 class="mb-3">
+                        <i class="bi bi-share me-2"></i>Chia s? bài vi?t
+                    </h5>
+                    <div class="share-buttons-group">
+                        <button class="share-btn facebook" onclick="shareFacebook()">
+                            <i class="bi bi-facebook"></i>
+                            Facebook
+                        </button>
+                        <button class="share-btn twitter" onclick="shareTwitter()">
+                            <i class="bi bi-twitter"></i>
+                            Twitter
+                        </button>
+                        <button class="share-btn linkedin" onclick="shareLinkedIn()">
+                            <i class="bi bi-linkedin"></i>
+                            LinkedIn
+                        </button>
+                        <button class="share-btn copy" onclick="copyLink()">
+                            <i class="bi bi-link-45deg"></i>
+                            Sao chép link
+                        </button>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Author Info -->
+            <div class="author-card sticky-sidebar">
+                <h6 class="card-title">
+                    <i class="bi bi-person-badge me-2"></i>Ng??i ??ng
+                </h6>
+                <div class="author-info">
+                    <div class="author-avatar-large">
+                        <i class="bi bi-person-circle"></i>
+                    </div>
+                    <div class="author-details">
+                        <h5>@(Model.Author?.Username ?? "Admin")</h5>
+                        <p class="text-muted mb-2">@(Model.Author?.Email ?? "")</p>
+                        @if (Model.Author?.UserProfile?.Bio != null)
+                        {
+                            <p class="small">@Model.Author.UserProfile.Bio</p>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Related News -->
+            @if (relatedUpdates != null && relatedUpdates.Any())
+            {
+                <div class="related-news-card mt-4">
+                    <h6 class="card-title">
+                        <i class="bi bi-newspaper me-2"></i>Tin liên quan
+                    </h6>
+                    <div class="related-news-list">
+                        @foreach (var related in relatedUpdates)
+                        {
+                            <a href="@Url.Action("Details", new { id = related.UpdateId })" 
+                               class="related-news-item">
+                                <div class="related-news-thumb">
+                                    @{
+                                        var relatedThumb = related.Campaign?.ThumbnailUrl ?? Url.Content("~/Images/DefaultPic.png");
+                                        try
+                                        {
+                                            if (!string.IsNullOrEmpty(related.ImageUrls))
+                                            {
+                                                var relatedImages = System.Text.Json.JsonSerializer.Deserialize<List<string>>(related.ImageUrls);
+                                                relatedThumb = relatedImages?.FirstOrDefault() ?? relatedThumb;
+                                            }
+                                        }
+                                        catch { }
+                                    }
+                                    <img src="@relatedThumb" alt="@related.Title"
+                                         onerror="this.src='@Url.Content("~/Images/DefaultPic.png")'" />
+                                </div>
+                                <div class="related-news-info">
+                                    <h6>@related.Title</h6>
+                                    <small class="text-muted">
+                                        <i class="bi bi-clock me-1"></i>
+                                        @related.CreatedAt?.ToString("dd/MM/yyyy")
+                                    </small>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Back to Campaign -->
+            @if (Model.Campaign != null)
+            {
+                <div class="back-to-campaign-card mt-4">
+                    <a href="@Url.Action("Details", "TrangChu", new { id = Model.Campaign.CampaignId })" 
+                       class="btn btn-outline-primary w-100">
+                        <i class="bi bi-arrow-left-circle me-2"></i>
+                        Quay v? chi?n d?ch
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-body p-0">
+                <button type="button" class="btn-close position-absolute top-0 end-0 m-3 bg-white" 
+                        data-bs-dismiss="modal" style="z-index: 10;"></button>
+                <img id="modalImage" src="" alt="Preview" class="img-fluid w-100" />
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/news.js" asp-append-version="true"></script>
+    <script>
+        function openImageModal(src) {
+            document.getElementById('modalImage').src = src;
+            var modal = new bootstrap.Modal(document.getElementById('imageModal'));
+            modal.show();
+        }
+
+        function shareFacebook() {
+            const url = encodeURIComponent(window.location.href);
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
+        }
+
+        function shareTwitter() {
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent(document.querySelector('.article-title').textContent);
+            window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank', 'width=600,height=400');
+        }
+
+        function shareLinkedIn() {
+            const url = encodeURIComponent(window.location.href);
+            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'width=600,height=400');
+        }
+
+        function copyLink() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                alert('?ã sao chép link vào clipboard!');
+            });
+        }
+    </script>
+}
