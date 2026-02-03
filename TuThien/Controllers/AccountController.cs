@@ -107,6 +107,11 @@ namespace TuThien.Controllers
                     return Redirect(returnUrl);
                 }
 
+                if (user.Role == "admin")
+                {
+                    return RedirectToAction("Index", "Admin");
+                }
+
                 return RedirectToAction("Index", "TrangChu");
             }
             catch (Exception ex)

@@ -575,7 +575,7 @@ namespace TuThien.Controllers
             ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
             ViewBag.Status = status;
             ViewBag.Search = search;
-            ViewBag.PendingCount = await _context.Campaigns.CountAsync(c => c.Status == "pending");
+            ViewBag.PendingCount = await _context.Campaigns.CountAsync(c => c.Status == "pending_approval");
 
             return View(campaigns);
         }
