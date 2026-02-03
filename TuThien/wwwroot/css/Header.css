@@ -1,0 +1,281 @@
+/* ==================== HEADER STYLES ==================== */
+
+/* Base Header */
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+/* Brand */
+.navbar-brand .brand-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0b63b7;
+}
+
+/* Dropdown Menu Base */
+.navbar .dropdown-menu {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border: 1px solid #dee2e6;
+    padding: 0;
+    min-width: 280px;
+    animation: fadeInDown 0.3s ease;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Category Dropdown */
+.navbar .dropdown-menu .card {
+    border: none;
+    box-shadow: none;
+    margin: 0;
+}
+
+.navbar .dropdown-menu .card-header {
+    background: linear-gradient(135deg, #0b63b7, #2b9bd3);
+    color: white;
+    font-weight: 600;
+    border-radius: 8px 8px 0 0;
+    padding: 12px 16px;
+}
+
+.navbar .dropdown-menu .list-group-item {
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 10px 16px;
+    transition: all 0.2s;
+}
+
+.navbar .dropdown-menu .list-group-item:last-child {
+    border-bottom: none;
+    border-radius: 0 0 8px 8px;
+}
+
+.navbar .dropdown-menu .list-group-item:hover {
+    background-color: #f8f9fa;
+    padding-left: 20px;
+}
+
+.navbar .dropdown-menu .category-filter {
+    color: #333;
+    text-decoration: none;
+    display: block;
+    font-size: 14px;
+}
+
+.navbar .dropdown-menu .category-filter:hover {
+    color: #0b63b7;
+    font-weight: 500;
+}
+
+/* ==================== DONATE DROPDOWN ==================== */
+
+.dropdown-donate {
+    padding: 0.5rem 0;
+}
+
+.dropdown-donate .dropdown-header {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #0b63b7;
+    padding: 0.75rem 1rem;
+    background: #f8f9ff;
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-donate .dropdown-item {
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.dropdown-donate .dropdown-item i {
+    font-size: 1.25rem;
+    color: #0b63b7;
+    flex-shrink: 0;
+}
+
+.dropdown-donate .dropdown-item div {
+    flex: 1;
+}
+
+.dropdown-donate .dropdown-item strong {
+    display: block;
+    color: #2c3e50;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+.dropdown-donate .dropdown-item small {
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.dropdown-donate .dropdown-item:hover {
+    background: linear-gradient(90deg, #f8f9ff 0%, #ffffff 100%);
+    padding-left: 1.25rem;
+}
+
+.dropdown-donate .dropdown-item:hover i {
+    transform: scale(1.1);
+}
+
+/* Donate Now Button in Dropdown */
+.dropdown-donate .dropdown-item.text-primary {
+    background: linear-gradient(135deg, #0b63b7 0%, #2b9bd3 100%);
+    color: white !important;
+    margin: 0.5rem;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.dropdown-donate .dropdown-item.text-primary i {
+    color: white;
+}
+
+.dropdown-donate .dropdown-item.text-primary:hover {
+    background: linear-gradient(135deg, #094d8f 0%, #2289b8 100%);
+    padding-left: 1rem;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(11, 99, 183, 0.3);
+}
+
+/* ==================== NAV LINKS ==================== */
+
+.navbar .nav-link {
+    position: relative;
+    transition: all 0.3s ease;
+    padding: 0.5rem 1rem;
+}
+
+.navbar .nav-link:hover {
+    color: #0b63b7;
+}
+
+.navbar .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #0b63b7, #2b9bd3);
+    transform: translateX(-50%);
+    transition: width 0.3s ease;
+}
+
+.navbar .nav-link:hover::after {
+    width: 80%;
+}
+
+/* Active nav link */
+.navbar .nav-link.active {
+    color: #0b63b7;
+    font-weight: 600;
+}
+
+.navbar .nav-link.active::after {
+    width: 80%;
+}
+
+/* ==================== SEARCH FORM ==================== */
+
+.navbar form[role="search"] .form-control:focus {
+    border-color: #0b63b7;
+    box-shadow: 0 0 0 0.2rem rgba(11, 99, 183, 0.25);
+}
+
+.navbar form[role="search"] .btn {
+    transition: all 0.3s ease;
+}
+
+.navbar form[role="search"] .btn:hover {
+    background: #0b63b7;
+    border-color: #0b63b7;
+    color: white;
+}
+
+/* ==================== LANGUAGE SELECTOR ==================== */
+
+.form-select-sm:focus {
+    border-color: #0b63b7;
+    box-shadow: 0 0 0 0.2rem rgba(11, 99, 183, 0.25);
+}
+
+/* ==================== USER MENU DROPDOWN ==================== */
+
+.dropdown-menu-end {
+    right: 0;
+    left: auto;
+}
+
+.dropdown-menu-end .dropdown-item {
+    transition: all 0.2s ease;
+}
+
+.dropdown-menu-end .dropdown-item:hover {
+    background: #f8f9fa;
+    padding-left: 1.25rem;
+}
+
+.dropdown-menu-end .dropdown-item i {
+    width: 20px;
+    text-align: center;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 768px) {
+    .navbar-brand .brand-title {
+        font-size: 1rem;
+    }
+    
+    .navbar .nav-link::after {
+        display: none;
+    }
+    
+    .dropdown-menu {
+        min-width: 100%;
+    }
+    
+    .dropdown-donate .dropdown-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .dropdown-donate .dropdown-item i {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .navbar form[role="search"] {
+        width: 100%;
+        margin: 1rem 0;
+    }
+    
+    .d-flex.align-items-center {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 0.5rem;
+    }
+    
+    .d-flex.align-items-center > * {
+        width: 100%;
+    }
+}
