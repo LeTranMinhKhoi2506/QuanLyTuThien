@@ -15,7 +15,7 @@ namespace TuThien.Controllers
         public async Task<IActionResult> Index()
         {
             var categorise = await _context.Categories
-                .Include(c => c.Campaigns)
+                .Include(c => c.Campaigns.Where(cmp => cmp.Status == "active"))
                 .OrderBy(c => c.Name)
                 .ToListAsync();
             return View("TrangChu", categorise);
@@ -29,41 +29,20 @@ namespace TuThien.Controllers
             {
                 categories = await _context.Categories
                     .Where(c => c.CategoryId == categoryId.Value)
-                    .Include(c => c.Campaigns)
+                    .Include(c => c.Campaigns.Where(cmp => cmp.Status == "active"))
                     .ToListAsync();
             }
             else
             {
                 categories = await _context.Categories
-                    .Include(c => c.Campaigns)
+                    .Include(c => c.Campaigns.Where(cmp => cmp.Status == "active"))
                     .OrderBy(c=>c.Name)
                     .ToListAsync();
             }
             return PartialView("patiralView", categories);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Details(int id)
-        {
-            var campaign = await _context.Campaigns
-                .Include(c => c.Category)
-                .Include(c => c.Creator)
-                .Include(c => c.Donations)
-                    .ThenInclude(d => d.User)
-                .Include(c => c.CampaignUpdates)
-                .Include(c => c.CampaignMilestones)
-                .Include(c => c.CampaignDocuments)
-                .Include(c => c.Comments)
-                    .ThenInclude(c => c.User)
-                .FirstOrDefaultAsync(c => c.CampaignId == id);
 
-            if (campaign == null)
-            {
-                return NotFound();
-            }
-
-            return View(campaign);
-        }
 
         public async Task<IActionResult> Create()
         {
