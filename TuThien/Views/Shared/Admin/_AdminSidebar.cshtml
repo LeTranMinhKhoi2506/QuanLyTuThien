@@ -1,0 +1,137 @@
+@* Admin Sidebar Navigation *@
+@{
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+}
+
+<aside class="admin-sidebar" id="adminSidebar">
+    <div class="brand">
+        <div class="brand-logo">TT</div>
+        <span class="brand-text">Admin Panel</span>
+    </div>
+    
+    <nav class="nav-section">
+        <div class="nav-section-title">Tổng quan</div>
+        <a class="nav-link @(currentAction == "Index" && (currentController == "Admin" || currentController == "AdminDashboard") ? "active" : "")" 
+           asp-controller="AdminDashboard" asp-action="Index">
+            <i class="bi bi-speedometer2"></i>
+            <span>Dashboard</span>
+        </a>
+    </nav>
+    
+    <!-- Dropdown: Quản lý chiến dịch -->
+    <nav class="nav-section">
+        <div class="nav-section-title">Quản lý</div>
+        <div class="sidebar-dropdown @(currentAction == "Campaigns" || currentAction == "CampaignDetail" || currentController == "AdminCampaigns" ? "open" : "")">
+            <a class="nav-link dropdown-toggle" href="javascript:void(0)" onclick="toggleDropdown(this)">
+                <i class="bi bi-megaphone"></i>
+                <span>Chiến dịch</span>
+                @if(ViewBag.PendingCampaigns > 0)
+                {
+                    <span class="badge bg-danger">@ViewBag.PendingCampaigns</span>
+                }
+            </a>
+            <div class="sidebar-dropdown-menu">
+                <a class="nav-link @(currentAction == "Index" && currentController == "AdminCampaigns" && ViewBag.Status == null ? "active" : "")" 
+                   asp-controller="AdminCampaigns" asp-action="Index">
+                    <i class="bi bi-list-ul"></i>
+                    <span>Tất cả chiến dịch</span>
+                </a>
+                <a class="nav-link @(ViewBag.Status == "pending" ? "active" : "")" 
+                   asp-controller="AdminCampaigns" asp-action="Index" asp-route-status="pending">
+                    <i class="bi bi-clock"></i>
+                    <span>Chờ duyệt</span>
+                </a>
+                <a class="nav-link @(ViewBag.Status == "active" ? "active" : "")" 
+                   asp-controller="AdminCampaigns" asp-action="Index" asp-route-status="active">
+                    <i class="bi bi-check-circle"></i>
+                    <span>Đang hoạt động</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Dropdown: Quản lý tài chính -->
+    <nav class="nav-section">
+        <div class="nav-section-title">Tài chính</div>
+        <div class="sidebar-dropdown @(currentAction == "Donations" || currentAction == "Disbursements" || currentAction == "ExportReport" || currentController == "AdminDonations" || currentController == "AdminDisbursements" ? "open" : "")">
+            <a class="nav-link dropdown-toggle" href="javascript:void(0)" onclick="toggleDropdown(this)">
+                <i class="bi bi-wallet2"></i>
+                <span>Quản lý tài chính</span>
+                @if(ViewBag.PendingDisbursements > 0)
+                {
+                    <span class="badge bg-danger">@ViewBag.PendingDisbursements</span>
+                }
+            </a>
+            <div class="sidebar-dropdown-menu">
+                <a class="nav-link @(currentController == "AdminDonations" && currentAction == "Index" ? "active" : "")" 
+                   asp-controller="AdminDonations" asp-action="Index">
+                    <i class="bi bi-cash-coin"></i>
+                    <span>Lịch sử quyên góp</span>
+                </a>
+                <a class="nav-link @(currentController == "AdminDisbursements" ? "active" : "")" 
+                   asp-controller="AdminDisbursements" asp-action="Index">
+                    <i class="bi bi-credit-card"></i>
+                    <span>Phê duyệt giải ngân</span>
+                    @if(ViewBag.PendingDisbursements > 0)
+                    {
+                        <span class="badge bg-warning text-dark">@ViewBag.PendingDisbursements</span>
+                    }
+                </a>
+                <a class="nav-link @(currentAction == "ExportReport" ? "active" : "")" 
+                   asp-controller="AdminDonations" asp-action="ExportReport">
+                    <i class="bi bi-file-earmark-spreadsheet"></i>
+                    <span>Xuất báo cáo</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Dropdown: Hệ thống -->
+    <nav class="nav-section">
+        <div class="nav-section-title">Hệ thống</div>
+        <div class="sidebar-dropdown @(currentAction == "Users" || currentAction == "Reports" || currentAction == "AuditLogs" || currentAction == "SendNotification" || currentController == "AdminUsers" || currentController == "AdminReports" || currentController == "AdminAudit" || currentController == "AdminNotifications" ? "open" : "")">
+            <a class="nav-link dropdown-toggle" href="javascript:void(0)" onclick="toggleDropdown(this)">
+                <i class="bi bi-gear"></i>
+                <span>Quản trị hệ thống</span>
+                @if(ViewBag.PendingReports > 0)
+                {
+                    <span class="badge bg-danger">@ViewBag.PendingReports</span>
+                }
+            </a>
+            <div class="sidebar-dropdown-menu">
+                <a class="nav-link @(currentController == "AdminUsers" ? "active" : "")" 
+                   asp-controller="AdminUsers" asp-action="Index">
+                    <i class="bi bi-people"></i>
+                    <span>Quản lý người dùng</span>
+                </a>
+                <a class="nav-link @(currentController == "AdminReports" ? "active" : "")" 
+                   asp-controller="AdminReports" asp-action="Index">
+                    <i class="bi bi-flag"></i>
+                    <span>Báo cáo sai phạm</span>
+                    @if(ViewBag.PendingReports > 0)
+                    {
+                        <span class="badge bg-warning text-dark">@ViewBag.PendingReports</span>
+                    }
+                </a>
+                <a class="nav-link @(currentController == "AdminNotifications" && currentAction == "Send" ? "active" : "")" 
+                   asp-controller="AdminNotifications" asp-action="Send">
+                    <i class="bi bi-bell"></i>
+                    <span>Gửi thông báo</span>
+                </a>
+                <a class="nav-link @(currentController == "AdminAudit" ? "active" : "")" 
+                   asp-controller="AdminAudit" asp-action="Index">
+                    <i class="bi bi-journal-text"></i>
+                    <span>Nhật ký hệ thống</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+    
+    <nav class="nav-section border-top border-secondary mt-3 pt-3">
+        <a class="nav-link" asp-controller="TrangChu" asp-action="Index">
+            <i class="bi bi-house"></i>
+            <span>Về trang chủ</span>
+        </a>
+    </nav>
+</aside>

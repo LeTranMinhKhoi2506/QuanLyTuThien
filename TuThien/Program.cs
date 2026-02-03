@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TuThien.Models;
+using TuThien.Services;
+using TuThien.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<TuThienContext>(options =>
@@ -8,6 +10,22 @@ builder.Services.AddDbContext<TuThienContext>(options =>
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Configure Options Pattern for settings
+builder.Services.Configure<DonationSettings>(
+    builder.Configuration.GetSection(DonationSettings.SectionName));
+builder.Services.Configure<BankSettings>(
+    builder.Configuration.GetSection(BankSettings.SectionName));
+builder.Services.Configure<VNPaySettings>(
+    builder.Configuration.GetSection(VNPaySettings.SectionName));
+builder.Services.Configure<MoMoSettings>(
+    builder.Configuration.GetSection(MoMoSettings.SectionName));
+
+// Add Donation Validation Service
+builder.Services.AddScoped<IDonationValidationService, DonationValidationService>();
+
+// Add Email Service
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Add Session support
 builder.Services.AddSession(options =>

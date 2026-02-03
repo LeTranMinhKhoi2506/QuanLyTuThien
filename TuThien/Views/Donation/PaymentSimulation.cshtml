@@ -1,0 +1,57 @@
+@{
+    ViewData["Title"] = "Xác nhận thanh toán (Simulation)";
+    var transactionCode = ViewBag.TransactionCode;
+    var amount = ViewBag.Amount;
+    var method = ViewBag.Method;
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Môi trường phát triển</h5>
+                </div>
+                <div class="card-body text-center py-5">
+                    <div class="display-1 mb-3">
+                        @if (method == "vnpay")
+                        {
+                            <img src="https://vnpay.vn/assets/images/logo-icon/logo-primary.svg" alt="VNPAY" style="height: 60px;">
+                        }
+                        else if (method == "momo")
+                        {
+                            <img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" alt="MoMo" style="height: 60px;">
+                        }
+                    </div>
+
+                    <h4>Xác nhận thanh toán</h4>
+                    <p class="text-muted mb-4">Đây là trang mô phỏng thanh toán cho môi trường phát triển.</p>
+
+                    <div class="alert alert-info text-start">
+                        <p class="mb-1"><strong>Mã giao dịch:</strong> @transactionCode</p>
+                        <p class="mb-1"><strong>Số tiền:</strong> @(((decimal)amount).ToString("N0")) VNĐ</p>
+                        <p class="mb-0"><strong>Phương thức:</strong> @method?.ToString().ToUpper()</p>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <form method="post" action="@Url.Action("ConfirmPayment", "Donation")">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="transactionCode" value="@transactionCode" />
+                            <button type="submit" class="btn btn-success btn-lg w-100">
+                                <i class="bi bi-check-circle me-2"></i>Xác nhận thanh toán thành công
+                            </button>
+                        </form>
+                        
+                        <a href="@Url.Action("Index", "TrangChu")" class="btn btn-outline-danger">
+                            <i class="bi bi-x-circle me-2"></i>Hủy thanh toán
+                        </a>
+                    </div>
+                </div>
+                <div class="card-footer bg-light text-muted small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Trong môi trường thực tế, bạn sẽ được chuyển đến cổng thanh toán chính thức.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

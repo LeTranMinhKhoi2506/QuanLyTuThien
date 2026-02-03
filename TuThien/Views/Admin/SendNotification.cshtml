@@ -31,12 +31,28 @@
                             </label>
                         </div>
                         <div class="form-check mt-2">
+                            <input class="form-check-input" type="radio" name="targetType" id="targetRole" value="role">
+                            <label class="form-check-label" for="targetRole">
+                                <strong>Theo vai trò</strong>
+                                <small class="text-muted d-block">Gửi thông báo đến một nhóm vai trò cụ thể</small>
+                            </label>
+                        </div>
+                        <div class="form-check mt-2">
                             <input class="form-check-input" type="radio" name="targetType" id="targetSingle" value="single">
                             <label class="form-check-label" for="targetSingle">
                                 <strong>Một người dùng cụ thể</strong>
                                 <small class="text-muted d-block">Gửi thông báo đến một người dùng theo ID</small>
                             </label>
                         </div>
+                    </div>
+                    
+                    <div class="mb-3" id="roleField" style="display: none;">
+                        <label class="form-label">Vai trò</label>
+                        <select id="targetRole" class="form-select">
+                            <option value="user">Người dùng thường (user)</option>
+                            <option value="charity_org">Tổ chức từ thiện (charity_org)</option>
+                            <option value="admin">Quản trị viên (admin)</option>
+                        </select>
                     </div>
                     
                     <div class="mb-3" id="userIdField" style="display: none;">
@@ -110,58 +126,67 @@
 </div>
 
 @section Scripts {
-    <script>
-        // Toggle user ID field
-        document.querySelectorAll('input[name="targetType"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                document.getElementById('userIdField').style.display = this.value === 'single' ? 'block' : 'none';
-            });
+<script>
+    // Toggle user ID field and role field
+    document.querySelectorAll('input[name="targetType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.getElementById('userIdField').style.display = this.value === 'single' ? 'block' : 'none';
+            document.getElementById('roleField').style.display = this.value === 'role' ? 'block' : 'none';
         });
+    });
         
-        // Template buttons
-        document.querySelectorAll('.template-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.getElementById('title').value = this.dataset.title;
-                document.getElementById('message').value = this.dataset.message;
-            });
+    // Template buttons
+    document.querySelectorAll('.template-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('title').value = this.dataset.title;
+            document.getElementById('message').value = this.dataset.message;
         });
+    });
         
-        // Form submit
-        document.getElementById('notificationForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+    // Form submit
+    document.getElementById('notificationForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
             
-            const title = document.getElementById('title').value;
-            const message = document.getElementById('message').value;
-            const targetType = document.querySelector('input[name="targetType"]:checked').value;
-            const targetUserId = document.getElementById('targetUserId').value;
+        const title = document.getElementById('title').value;
+        const message = document.getElementById('message').value;
+        const targetType = document.querySelector('input[name="targetType"]:checked').value;
+        const targetUserId = document.getElementById('targetUserId').value;
+        const targetRoleValue = document.getElementById('targetRole').value;
             
-            if (!title || !message) {
-                alert('Vui lòng nhập đầy đủ thông tin!');
-                return;
-            }
+        if (!title || !message) {
+            alert('Vui lòng nhập đầy đủ thông tin!');
+            return;
+        }
             
-            if (targetType === 'single' && !targetUserId) {
-                alert('Vui lòng nhập User ID!');
-                return;
-            }
+        if (targetType === 'single' && !targetUserId) {
+            alert('Vui lòng nhập User ID!');
+            return;
+        }
             
-            if (targetType === 'all') {
-                if (!confirm('Bạn có chắc muốn gửi thông báo đến TẤT CẢ người dùng?')) return;
-            }
+        if (targetType === 'all') {
+            if (!confirm('Bạn có chắc muốn gửi thông báo đến TẤT CẢ người dùng?')) return;
+        }
             
-            const formData = new FormData();
-            formData.append('title', title);
-            formData.append('message', message);
+        let url = '@Url.Action("SendNotification", "Admin")';
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('message', message);
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            
+        if (targetType === 'role') {
+            url = '@Url.Action("SendNotificationByRole", "Admin")';
+            formData.append('role', targetRoleValue);
+        } else {
             formData.append('targetType', targetType);
             if (targetUserId) formData.append('targetUserId', targetUserId);
-            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+        }
             
-            const response = await fetch('@Url.Action("SendNotification", "Admin")', {
-                method: 'POST',
-                body: formData
-            });
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
             
-            const result = await response.json();
+        const result = await response.json();
             if (result.success) {
                 alert(result.message);
                 this.reset();
