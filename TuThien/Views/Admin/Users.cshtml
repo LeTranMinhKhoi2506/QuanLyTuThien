@@ -347,7 +347,7 @@ async function validateUsername(value) {
     checkUsernameTimer = setTimeout(async () => {
         try {
             const excludeId = userId !== '0' ? `&excludeUserId=${userId}` : '';
-            const response = await fetch(`@Url.Action("CheckUsernameExists", "AdminUsers")?username=${encodeURIComponent(value)}${excludeId}`);
+            const response = await fetch(`@Url.Action("CheckUsernameExists", "AdminUsers", new { area = "" })?username=${encodeURIComponent(value)}${excludeId}`);
             const res = await response.json();
                 
             if (res.exists) {
@@ -408,7 +408,7 @@ async function validateEmail(value) {
     checkEmailTimer = setTimeout(async () => {
         try {
             const excludeId = userId !== '0' ? `&excludeUserId=${userId}` : '';
-            const response = await fetch(`@Url.Action("CheckEmailExists", "AdminUsers")?email=${encodeURIComponent(value)}${excludeId}`);
+            const response = await fetch(`@Url.Action("CheckEmailExists", "AdminUsers", new { area = "" })?email=${encodeURIComponent(value)}${excludeId}`);
             const res = await response.json();
                 
             if (res.exists) {
@@ -600,7 +600,7 @@ async function editUser(id) {
     });
 
     try {
-        const response = await fetch(`@Url.Action("GetUser", "Admin")?id=${id}`);
+        const response = await fetch(`@Url.Action("Get", "AdminUsers", new { area = "" })?id=${id}`);
         const res = await response.json();
         Swal.close();
 
@@ -698,7 +698,7 @@ async function editUser(id) {
         formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
 
         try {
-            const url = isEdit ? '@Url.Action("UpdateUser", "Admin")' : '@Url.Action("CreateUser", "Admin")';
+            const url = isEdit ? '@Url.Action("Update", "AdminUsers", new { area = "" })' : '@Url.Action("Create", "AdminUsers", new { area = "" })';
             const response = await fetch(url, {
                 method: 'POST',
                 body: formData
@@ -759,7 +759,7 @@ async function editUser(id) {
         formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
 
         try {
-            const response = await fetch('@Url.Action("DeleteUser", "Admin")', {
+            const response = await fetch('@Url.Action("Delete", "AdminUsers", new { area = "" })', {
                 method: 'POST',
                 body: formData
             });
@@ -824,7 +824,7 @@ async function editUser(id) {
                 formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
                 
                 try {
-                    const response = await fetch('@Url.Action("UpdateUserStatus", "Admin")', {
+                    const response = await fetch('@Url.Action("UpdateStatus", "AdminUsers", new { area = "" })', {
                         method: 'POST',
                         body: formData
                     });
@@ -899,7 +899,7 @@ async function editUser(id) {
                 formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
                 
                 try {
-                    const response = await fetch('@Url.Action("UpdateUserRole", "Admin")', {
+                    const response = await fetch('@Url.Action("UpdateRole", "AdminUsers", new { area = "" })', {
                         method: 'POST',
                         body: formData
                     });

@@ -99,7 +99,7 @@
             if (!confirmed) return;
             
             try {
-                await fetch('@Url.Action("MarkAllNotificationsRead", "Admin")', { method: 'POST' });
+                await fetch('@Url.Action("MarkAllRead", "AdminNotifications", new { area = "" })', { method: 'POST' });
                 showToast('Thành công', 'Đã đánh dấu tất cả thông báo là đã đọc', 'success');
                 setTimeout(() => location.reload(), 1000);
             } catch (error) {
