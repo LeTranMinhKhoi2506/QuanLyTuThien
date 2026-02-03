@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - TuThien</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/TuThien.styles.css" asp-append-version="true" />
 </head>
@@ -43,7 +45,86 @@
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <script>
+        // SweetAlert2 Helper Functions for main layout
+        const Swal2 = {
+            toast: function(title, icon = 'success') {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                        toast.addEventListener('mouseleave', Swal.resumeTimer);
+                    }
+                });
+                return Toast.fire({ icon, title });
+            },
+            success: function(title, text = '') {
+                return Swal.fire({
+                    icon: 'success',
+                    title: title,
+                    text: text,
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#198754'
+                });
+            },
+            error: function(title, text = '') {
+                return Swal.fire({
+                    icon: 'error',
+                    title: title,
+                    text: text,
+                    confirmButtonText: 'Đóng',
+                    confirmButtonColor: '#dc3545'
+                });
+            },
+            warning: function(title, text = '') {
+                return Swal.fire({
+                    icon: 'warning',
+                    title: title,
+                    text: text,
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#ffc107'
+                });
+            },
+            info: function(title, text = '') {
+                return Swal.fire({
+                    icon: 'info',
+                    title: title,
+                    text: text,
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#0d6efd'
+                });
+            },
+            confirm: function(title, text, options = {}) {
+                return Swal.fire({
+                    icon: options.icon || 'question',
+                    title: title,
+                    text: text,
+                    showCancelButton: true,
+                    confirmButtonText: options.confirmText || 'Xác nhận',
+                    cancelButtonText: options.cancelText || 'Hủy',
+                    confirmButtonColor: options.confirmColor || '#0d6efd',
+                    cancelButtonColor: '#6c757d',
+                    reverseButtons: true
+                });
+            },
+            loading: function(title = 'Đang xử lý...') {
+                return Swal.fire({
+                    title: title,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+            },
+            closeLoading: function() { Swal.close(); }
+        };
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

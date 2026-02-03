@@ -4,6 +4,25 @@
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
+@* Nút hành động cố định phía trên khi đang chờ duyệt *@
+@if (Model.Status == "pending_approval")
+{
+    <div class="alert alert-warning d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Chiến dịch đang chờ phê duyệt!</strong> Vui lòng kiểm tra thông tin trước khi phê duyệt.
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-success" onclick="approveCampaign()">
+                <i class="bi bi-check-circle me-1"></i>Phê duyệt
+            </button>
+            <button type="button" class="btn btn-danger" onclick="rejectCampaign()">
+                <i class="bi bi-x-circle me-1"></i>Từ chối
+            </button>
+        </div>
+    </div>
+}
+
 <div class="row">
     <div class="col-lg-8">
         <div class="card mb-4">
@@ -12,19 +31,23 @@
                 @{
                     var statusBadge = Model.Status switch
                     {
-                        "pending" => "badge-pending",
+                        "pending_approval" => "badge-pending",
                         "active" => "badge-active",
                         "rejected" => "badge-rejected",
-                        "closed" => "bg-secondary",
+                        "completed" => "bg-secondary",
+                        "paused" => "bg-warning text-dark",
+                        "locked" => "bg-danger",
                         "draft" => "badge-draft",
                         _ => "bg-dark"
                     };
                     var statusText = Model.Status switch
                     {
-                        "pending" => "Chờ duyệt",
+                        "pending_approval" => "Chờ duyệt",
                         "active" => "Đang hoạt động",
                         "rejected" => "Từ chối",
-                        "closed" => "Đã đóng",
+                        "completed" => "Đã hoàn thành",
+                        "paused" => "Tạm dừng",
+                        "locked" => "Bị khóa",
                         "draft" => "Nháp",
                         _ => Model.Status
                     };
@@ -62,7 +85,7 @@
                         @{
                             var excessOption = Model.ExcessFundOption switch
                             {
-                                "emergency_fund" => "Chuyển vào quỹ dự phòng khẩn cấp",
+                                "reserve_fund" => "Chuyển vào quỹ dự phòng",
                                 "next_case" => "Chuyển cho hoàn cảnh khó khăn tiếp theo",
                                 _ => Model.ExcessFundOption
                             };
@@ -223,35 +246,45 @@
             </div>
         }
         
-        @if (Model.Status == "pending")
+        @if (Model.Status == "pending_approval")
         {
             <div class="card">
                 <div class="card-header bg-warning bg-opacity-25">
-                    <i class="bi bi-exclamation-triangle me-2"></i>Phê duyệt chiến dịch
+                    <i class="bi bi-clipboard-check me-2"></i>Kiểm duyệt chiến dịch
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info">
-                        <strong>Checklist kiểm duyệt:</strong>
+                    <div class="alert alert-info mb-4">
+                        <strong><i class="bi bi-list-check me-2"></i>Checklist kiểm duyệt:</strong>
                         <ul class="mb-0 mt-2">
-                            <li>Kiểm duyệt hồ sơ pháp lý/chứng minh hoàn cảnh</li>
-                            <li>Xác thực thông tin người tạo chiến dịch</li>
-                            <li>Kiểm tra mô tả chiến dịch có phù hợp</li>
-                            <li>Xác nhận mục tiêu quyên góp hợp lý</li>
+                            <li>✅ Kiểm tra hồ sơ pháp lý/chứng minh hoàn cảnh</li>
+                            <li>✅ Xác thực thông tin người tạo chiến dịch</li>
+                            <li>✅ Kiểm tra mô tả chiến dịch có phù hợp, không vi phạm</li>
+                            <li>✅ Xác nhận mục tiêu quyên góp hợp lý</li>
+                            <li>✅ Kiểm tra ngày bắt đầu/kết thúc chiến dịch</li>
                         </ul>
                     </div>
                     
-                    <div class="mb-3">
-                        <label class="form-label">Ghi chú (nếu từ chối)</label>
-                        <textarea id="adminNote" class="form-control" rows="3" placeholder="Nhập lý do từ chối nếu không phê duyệt..."></textarea>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-chat-left-text me-1"></i>Ghi chú Admin
+                        </label>
+                        <textarea id="adminNote" class="form-control" rows="3" placeholder="Nhập ghi chú hoặc lý do từ chối nếu không phê duyệt..."></textarea>
+                        <small class="text-muted">Ghi chú này sẽ được gửi đến người tạo chiến dịch</small>
                     </div>
                     
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-success btn-lg" onclick="approveCampaign()">
-                            <i class="bi bi-check-circle me-2"></i>Phê duyệt
-                        </button>
-                        <button type="button" class="btn btn-danger btn-lg" onclick="rejectCampaign()">
-                            <i class="bi bi-x-circle me-2"></i>Từ chối
-                        </button>
+                    <div class="row">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <button type="button" class="btn btn-success btn-lg w-100" onclick="approveCampaign()">
+                                <i class="bi bi-check-circle me-2"></i>Phê duyệt chiến dịch
+                            </button>
+                            <small class="text-muted d-block mt-1">Chiến dịch sẽ chuyển sang trạng thái "Hoạt động"</small>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-danger btn-lg w-100" onclick="rejectCampaign()">
+                                <i class="bi bi-x-circle me-2"></i>Từ chối chiến dịch
+                            </button>
+                            <small class="text-muted d-block mt-1">Yêu cầu nhập lý do từ chối</small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -341,10 +374,32 @@
         
         @if (Model.Status == "active")
         {
-            <div class="card">
+            <div class="card mb-4">
+                <div class="card-header bg-success bg-opacity-10">
+                    <i class="bi bi-check2-circle me-2"></i>Chiến dịch đang hoạt động
+                </div>
                 <div class="card-body">
-                    <button type="button" class="btn btn-outline-warning w-100" onclick="closeCampaign()">
-                        <i class="bi bi-pause-circle me-2"></i>Đóng chiến dịch
+                    <p class="text-muted small mb-3">Chiến dịch đang nhận quyên góp từ mọi người.</p>
+                    <button type="button" class="btn btn-warning w-100" onclick="pauseCampaign()">
+                        <i class="bi bi-pause-circle me-2"></i>Tạm dừng chiến dịch
+                    </button>
+                    <button type="button" class="btn btn-outline-success w-100 mt-2" onclick="completeCampaign()">
+                        <i class="bi bi-check2-all me-2"></i>Hoàn thành chiến dịch
+                    </button>
+                </div>
+            </div>
+        }
+        
+        @if (Model.Status == "paused")
+        {
+            <div class="card mb-4">
+                <div class="card-header bg-warning bg-opacity-25">
+                    <i class="bi bi-pause-circle me-2"></i>Chiến dịch đang tạm dừng
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">Chiến dịch đang tạm ngừng nhận quyên góp.</p>
+                    <button type="button" class="btn btn-success w-100" onclick="resumeCampaign()">
+                        <i class="bi bi-play-circle me-2"></i>Tiếp tục chiến dịch
                     </button>
                 </div>
             </div>
@@ -430,22 +485,20 @@
         
     async function closeCampaign() {
         const confirmed = await showConfirm({
-            title: 'Đóng chiến dịch',
-            message: 'Bạn có chắc chắn muốn đóng chiến dịch này? Chiến dịch sẽ không còn nhận quyên góp.',
+            title: 'Hoàn thành chiến dịch',
+            message: 'Bạn có chắc chắn muốn đánh dấu chiến dịch này đã hoàn thành? Chiến dịch sẽ không còn nhận quyên góp.',
             type: 'warning',
-            confirmText: 'Đóng chiến dịch',
-            confirmClass: 'btn-warning'
+            confirmText: 'Hoàn thành',
+            confirmClass: 'btn-success'
         });
             
         if (!confirmed) return;
             
-        // Show input modal for reason
-        const note = await showInputModal('Lý do đóng chiến dịch', 'Nhập lý do đóng chiến dịch...');
-        if (!note) return;
+        const note = await showInputModal('Ghi chú hoàn thành', 'Nhập ghi chú (không bắt buộc)...');
             
         const formData = new FormData();
         formData.append('campaignId', @Model.CampaignId);
-        formData.append('note', note);
+        formData.append('note', note || '');
         formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
         try {
@@ -456,7 +509,7 @@
                 
             const result = await response.json();
             if (result.success) {
-                showToast('Thành công', 'Đã đóng chiến dịch!', 'success');
+                showToast('Thành công', 'Chiến dịch đã hoàn thành!', 'success');
                 setTimeout(() => {
                     location.reload();
                 }, 1500);
@@ -467,6 +520,86 @@
             showToast('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
         }
     }
+    
+    // Alias function cho completeCampaign
+    async function completeCampaign() {
+        await closeCampaign();
+    }
+    
+    // Tạm dừng chiến dịch
+    async function pauseCampaign() {
+        const confirmed = await showConfirm({
+            title: 'Tạm dừng chiến dịch',
+            message: 'Bạn có chắc chắn muốn tạm dừng chiến dịch này? Chiến dịch sẽ tạm ngừng nhận quyên góp.',
+            type: 'warning',
+            confirmText: 'Tạm dừng',
+            confirmClass: 'btn-warning'
+        });
+            
+        if (!confirmed) return;
+            
+        const formData = new FormData();
+        formData.append('campaignId', @Model.CampaignId);
+        formData.append('status', 'paused');
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            
+        try {
+            const response = await fetch('@Url.Action("UpdateCampaignStatus", "Admin")', {
+                method: 'POST',
+                body: formData
+            });
+                
+            const result = await response.json();
+            if (result.success) {
+                showToast('Thành công', 'Đã tạm dừng chiến dịch!', 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showToast('Lỗi', result.message, 'error');
+            }
+        } catch (error) {
+            showToast('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
+        }
+    }
+    
+    // Tiếp tục chiến dịch
+    async function resumeCampaign() {
+        const confirmed = await showConfirm({
+            title: 'Tiếp tục chiến dịch',
+            message: 'Bạn có chắc chắn muốn tiếp tục chiến dịch này? Chiến dịch sẽ bắt đầu nhận quyên góp trở lại.',
+            type: 'info',
+            confirmText: 'Tiếp tục',
+            confirmClass: 'btn-success'
+        });
+            
+        if (!confirmed) return;
+            
+        const formData = new FormData();
+        formData.append('campaignId', @Model.CampaignId);
+        formData.append('status', 'active');
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            
+        try {
+            const response = await fetch('@Url.Action("UpdateCampaignStatus", "Admin")', {
+                method: 'POST',
+                body: formData
+            });
+                
+            const result = await response.json();
+            if (result.success) {
+                showToast('Thành công', 'Đã tiếp tục chiến dịch!', 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showToast('Lỗi', result.message, 'error');
+            }
+        } catch (error) {
+            showToast('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
+        }
+    }
+        
         
     // Simple input modal function
     function showInputModal(title, placeholder) {

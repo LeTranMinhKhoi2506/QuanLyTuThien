@@ -4,6 +4,8 @@
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
+@Html.AntiForgeryToken()
+
 <div class="card mb-4">
     <div class="card-body">
         <form method="get" class="row g-3">
@@ -39,10 +41,15 @@
 </div>
 
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-people me-2"></i>Danh sách người dùng</span>
-        <span class="badge bg-secondary">Tổng: @Model.Count</span>
+<div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-people me-2"></i>Danh sách người dùng</span>
+    <div>
+        <span class="badge bg-secondary me-2">Tổng: @Model.Count</span>
+        <button type="button" class="btn btn-success btn-sm" onclick="showCreateUserModal()">
+            <i class="bi bi-plus-lg me-1"></i>Thêm người dùng
+        </button>
     </div>
+</div>
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -106,6 +113,10 @@
                             </td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-primary" 
+                                            onclick="editUser(@user.UserId)" title="Sửa">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
                                     @if (user.Status == "active")
                                     {
                                         <button type="button" class="btn btn-outline-danger btn-status" 
@@ -120,6 +131,10 @@
                                             <i class="bi bi-unlock"></i>
                                         </button>
                                     }
+                                    <button type="button" class="btn btn-outline-danger" 
+                                            onclick="deleteUser(@user.UserId, '@user.Username.Replace("'", "\\'")')" title="Xóa">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -147,60 +162,775 @@
 </div>
 
 @section Scripts {
-    <script>
-        // Update user status
-        document.querySelectorAll('.btn-status').forEach(btn => {
+<!-- Modal Tạo/Sửa Người dùng -->
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalTitle">Thêm người dùng mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId" value="0" />
+                    
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Lưu ý:</strong> Tên đăng nhập và email phải là duy nhất trong hệ thống.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-person me-1"></i>Tên đăng nhập <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="userName" required minlength="3" maxlength="50" placeholder="Nhập tên đăng nhập" />
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <small id="usernameFeedback" class="text-muted">3-50 ký tự, chỉ chữ cái, số và dấu gạch dưới</small>
+                            <small id="usernameCounter" class="text-muted">0/50</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-envelope me-1"></i>Email <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" class="form-control" id="userEmail" required maxlength="100" placeholder="example@email.com" />
+                        <small id="emailFeedback" class="text-muted">Email hợp lệ và chưa được sử dụng</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" id="passwordLabel">
+                            <i class="bi bi-key me-1"></i>Mật khẩu <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="userPassword" minlength="6" placeholder="Nhập mật khẩu" />
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                                <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                            </button>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <small id="passwordFeedback" class="text-muted">Tối thiểu 6 ký tự</small>
+                            <small id="passwordStrength" class="fw-semibold"></small>
+                        </div>
+                        <small class="text-muted" id="passwordHint" style="display: none;">Để trống nếu không muốn đổi mật khẩu</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-telephone me-1"></i>Số điện thoại
+                        </label>
+                        <input type="tel" class="form-control" id="userPhone" maxlength="15" placeholder="0901234567" />
+                        <small id="phoneFeedback" class="text-muted">Số điện thoại Việt Nam (không bắt buộc)</small>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-person-badge me-1"></i>Vai trò
+                            </label>
+                            <select class="form-select" id="userRole">
+                                <option value="user">Người dùng</option>
+                                <option value="charity_org">Tổ chức từ thiện</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3" id="statusGroup" style="display: none;">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-toggle2-on me-1"></i>Trạng thái
+                            </label>
+                            <select class="form-select" id="userStatus">
+                                <option value="active">Hoạt động</option>
+                                <option value="locked">Đã khóa</option>
+                                <option value="pending_verification">Chờ xác thực</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="saveUser()">
+                    <i class="bi bi-check-lg me-1"></i>Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let userModal;
+let validationState = {
+    username: false,
+    email: false,
+    password: false,
+    phone: true
+};
+let checkUsernameTimer, checkEmailTimer;
+
+document.addEventListener('DOMContentLoaded', function() {
+    userModal = new bootstrap.Modal(document.getElementById('userModal'));
+    setupUserValidation();
+});
+
+// ============== REAL-TIME VALIDATION ==============
+function setupUserValidation() {
+    const usernameInput = document.getElementById('userName');
+    const emailInput = document.getElementById('userEmail');
+    const passwordInput = document.getElementById('userPassword');
+    const phoneInput = document.getElementById('userPhone');
+
+    // Username validation
+    usernameInput.addEventListener('input', function() {
+        validateUsername(this.value);
+    });
+
+    // Email validation
+    emailInput.addEventListener('input', function() {
+        validateEmail(this.value);
+    });
+
+    // Password validation
+    passwordInput.addEventListener('input', function() {
+        validatePassword(this.value);
+    });
+
+    // Phone validation
+    phoneInput.addEventListener('input', function() {
+        validatePhone(this.value);
+    });
+}
+
+async function validateUsername(value) {
+    const input = document.getElementById('userName');
+    const feedback = document.getElementById('usernameFeedback');
+    const counter = document.getElementById('usernameCounter');
+    const userId = document.getElementById('userId').value;
+        
+    value = value.trim();
+    const length = value.length;
+    counter.textContent = `${length}/50`;
+
+    // Reset
+    input.classList.remove('is-valid', 'is-invalid');
+
+    if (length === 0) {
+        feedback.className = 'text-muted';
+        feedback.textContent = '3-50 ký tự, chỉ chữ cái, số và dấu gạch dưới';
+        counter.className = 'text-muted';
+        validationState.username = false;
+        updateUserSaveButton();
+        return;
+    }
+
+    // Check length
+    if (length < 3) {
+        input.classList.add('is-invalid');
+        feedback.className = 'text-danger';
+        feedback.innerHTML = `<i class="bi bi-x-circle me-1"></i>Cần thêm ${3 - length} ký tự nữa`;
+        counter.className = 'text-danger';
+        validationState.username = false;
+        updateUserSaveButton();
+        return;
+    }
+
+    // Check format
+    if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+        input.classList.add('is-invalid');
+        feedback.className = 'text-danger';
+        feedback.innerHTML = '<i class="bi bi-x-circle me-1"></i>Chỉ được chứa chữ cái, số và dấu gạch dưới';
+        validationState.username = false;
+        updateUserSaveButton();
+        return;
+    }
+
+    // Check uniqueness (debounce)
+    clearTimeout(checkUsernameTimer);
+    feedback.className = 'text-info';
+    feedback.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Đang kiểm tra...';
+        
+    checkUsernameTimer = setTimeout(async () => {
+        try {
+            const excludeId = userId !== '0' ? `&excludeUserId=${userId}` : '';
+            const response = await fetch(`@Url.Action("CheckUsernameExists", "AdminUsers")?username=${encodeURIComponent(value)}${excludeId}`);
+            const res = await response.json();
+                
+            if (res.exists) {
+                input.classList.add('is-invalid');
+                feedback.className = 'text-danger';
+                feedback.innerHTML = '<i class="bi bi-x-circle me-1"></i>Tên đăng nhập đã tồn tại';
+                validationState.username = false;
+            } else {
+                input.classList.add('is-valid');
+                feedback.className = 'text-success';
+                feedback.innerHTML = '<i class="bi bi-check-circle me-1"></i>Tên đăng nhập hợp lệ';
+                counter.className = 'text-success';
+                validationState.username = true;
+            }
+        } catch (error) {
+            feedback.className = 'text-warning';
+            feedback.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Không thể kiểm tra';
+            validationState.username = true; // Allow submission, server will validate
+        }
+        updateUserSaveButton();
+    }, 500);
+}
+
+async function validateEmail(value) {
+    const input = document.getElementById('userEmail');
+    const feedback = document.getElementById('emailFeedback');
+    const userId = document.getElementById('userId').value;
+        
+    value = value.trim();
+
+    // Reset
+    input.classList.remove('is-valid', 'is-invalid');
+
+    if (value.length === 0) {
+        feedback.className = 'text-muted';
+        feedback.textContent = 'Email hợp lệ và chưa được sử dụng';
+        validationState.email = false;
+        updateUserSaveButton();
+        return;
+    }
+
+    // Check format
+    const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+    if (!emailRegex.test(value)) {
+        input.classList.add('is-invalid');
+        feedback.className = 'text-danger';
+        feedback.innerHTML = '<i class="bi bi-x-circle me-1"></i>Email không đúng định dạng';
+        validationState.email = false;
+        updateUserSaveButton();
+        return;
+    }
+
+    // Check uniqueness (debounce)
+    clearTimeout(checkEmailTimer);
+    feedback.className = 'text-info';
+    feedback.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Đang kiểm tra...';
+        
+    checkEmailTimer = setTimeout(async () => {
+        try {
+            const excludeId = userId !== '0' ? `&excludeUserId=${userId}` : '';
+            const response = await fetch(`@Url.Action("CheckEmailExists", "AdminUsers")?email=${encodeURIComponent(value)}${excludeId}`);
+            const res = await response.json();
+                
+            if (res.exists) {
+                input.classList.add('is-invalid');
+                feedback.className = 'text-danger';
+                feedback.innerHTML = '<i class="bi bi-x-circle me-1"></i>Email đã được sử dụng';
+                validationState.email = false;
+            } else {
+                input.classList.add('is-valid');
+                feedback.className = 'text-success';
+                feedback.innerHTML = '<i class="bi bi-check-circle me-1"></i>Email hợp lệ';
+                validationState.email = true;
+            }
+        } catch (error) {
+            feedback.className = 'text-warning';
+            feedback.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Không thể kiểm tra';
+            validationState.email = true;
+        }
+        updateUserSaveButton();
+    }, 500);
+}
+
+function validatePassword(value) {
+    const input = document.getElementById('userPassword');
+    const feedback = document.getElementById('passwordFeedback');
+    const strength = document.getElementById('passwordStrength');
+    const userId = document.getElementById('userId').value;
+    const isEdit = userId !== '0';
+
+    // Reset
+    input.classList.remove('is-valid', 'is-invalid');
+    strength.textContent = '';
+
+    // If editing and password is empty, it's valid (won't change password)
+    if (isEdit && value.length === 0) {
+        feedback.className = 'text-muted';
+        feedback.textContent = 'Để trống nếu không muốn đổi mật khẩu';
+        validationState.password = true;
+        updateUserSaveButton();
+        return;
+    }
+
+    if (value.length === 0) {
+        feedback.className = 'text-muted';
+        feedback.textContent = 'Tối thiểu 6 ký tự';
+        validationState.password = false;
+        updateUserSaveButton();
+        return;
+    }
+
+    if (value.length < 6) {
+        input.classList.add('is-invalid');
+        feedback.className = 'text-danger';
+        feedback.innerHTML = `<i class="bi bi-x-circle me-1"></i>Cần thêm ${6 - value.length} ký tự nữa`;
+        validationState.password = false;
+        updateUserSaveButton();
+        return;
+    }
+
+    // Password strength check
+    let strengthLevel = 0;
+    if (value.length >= 8) strengthLevel++;
+    if (/[a-z]/.test(value) && /[A-Z]/.test(value)) strengthLevel++;
+    if (/\d/.test(value)) strengthLevel++;
+    if (/[!@@#$%^&*(),.?":{}|<>]/.test(value)) strengthLevel++;
+
+    input.classList.add('is-valid');
+    feedback.className = 'text-success';
+    feedback.innerHTML = '<i class="bi bi-check-circle me-1"></i>Mật khẩu hợp lệ';
+
+    if (strengthLevel <= 1) {
+        strength.className = 'text-danger fw-semibold';
+        strength.textContent = 'Yếu';
+    } else if (strengthLevel === 2) {
+        strength.className = 'text-warning fw-semibold';
+        strength.textContent = 'Trung bình';
+    } else if (strengthLevel === 3) {
+        strength.className = 'text-info fw-semibold';
+        strength.textContent = 'Khá';
+    } else {
+        strength.className = 'text-success fw-semibold';
+        strength.textContent = 'Mạnh';
+    }
+
+    validationState.password = true;
+    updateUserSaveButton();
+}
+
+function validatePhone(value) {
+    const input = document.getElementById('userPhone');
+    const feedback = document.getElementById('phoneFeedback');
+
+    // Reset
+    input.classList.remove('is-valid', 'is-invalid');
+
+    if (value.length === 0) {
+        feedback.className = 'text-muted';
+        feedback.textContent = 'Số điện thoại Việt Nam (không bắt buộc)';
+        validationState.phone = true;
+        updateUserSaveButton();
+        return;
+    }
+
+    // Vietnam phone regex
+    const phoneRegex = /^(0|\+84)[0-9]{9,10}$/;
+    if (!phoneRegex.test(value.replace(/\s/g, ''))) {
+        input.classList.add('is-invalid');
+        feedback.className = 'text-danger';
+        feedback.innerHTML = '<i class="bi bi-x-circle me-1"></i>Số điện thoại không hợp lệ';
+        validationState.phone = false;
+    } else {
+        input.classList.add('is-valid');
+        feedback.className = 'text-success';
+        feedback.innerHTML = '<i class="bi bi-check-circle me-1"></i>Số điện thoại hợp lệ';
+        validationState.phone = true;
+    }
+    updateUserSaveButton();
+}
+
+function togglePassword() {
+    const input = document.getElementById('userPassword');
+    const icon = document.getElementById('togglePasswordIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+function updateUserSaveButton() {
+    const saveBtn = document.querySelector('#userModal .btn-primary');
+    const isValid = validationState.username && validationState.email && validationState.password && validationState.phone;
+    saveBtn.disabled = !isValid;
+}
+
+function resetUserValidationState(isEdit = false) {
+    validationState = { 
+        username: false, 
+        email: false, 
+        password: isEdit, // If editing, password is optional
+        phone: true 
+    };
+        
+    ['userName', 'userEmail', 'userPassword', 'userPhone'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('is-valid', 'is-invalid');
+    });
+
+    document.getElementById('usernameFeedback').className = 'text-muted';
+    document.getElementById('usernameFeedback').textContent = '3-50 ký tự, chỉ chữ cái, số và dấu gạch dưới';
+    document.getElementById('usernameCounter').className = 'text-muted';
+    document.getElementById('usernameCounter').textContent = '0/50';
+
+    document.getElementById('emailFeedback').className = 'text-muted';
+    document.getElementById('emailFeedback').textContent = 'Email hợp lệ và chưa được sử dụng';
+
+    document.getElementById('passwordFeedback').className = 'text-muted';
+    document.getElementById('passwordFeedback').textContent = 'Tối thiểu 6 ký tự';
+    document.getElementById('passwordStrength').textContent = '';
+
+    document.getElementById('phoneFeedback').className = 'text-muted';
+    document.getElementById('phoneFeedback').textContent = 'Số điện thoại Việt Nam (không bắt buộc)';
+
+    const saveBtn = document.querySelector('#userModal .btn-primary');
+    saveBtn.disabled = true;
+}
+
+// ============== END VALIDATION ==============
+
+function showCreateUserModal() {
+    document.getElementById('userModalTitle').textContent = 'Thêm người dùng mới';
+    document.getElementById('userForm').reset();
+    document.getElementById('userId').value = '0';
+    document.getElementById('userPassword').required = true;
+    document.getElementById('passwordLabel').innerHTML = '<i class="bi bi-key me-1"></i>Mật khẩu <span class="text-danger">*</span>';
+    document.getElementById('passwordHint').style.display = 'none';
+    document.getElementById('statusGroup').style.display = 'none';
+    resetUserValidationState(false);
+    userModal.show();
+}
+
+async function editUser(id) {
+    Swal.fire({
+        title: 'Đang tải...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    try {
+        const response = await fetch(`@Url.Action("GetUser", "Admin")?id=${id}`);
+        const res = await response.json();
+        Swal.close();
+
+            if (res.success) {
+                const u = res.user;
+                document.getElementById('userModalTitle').textContent = 'Sửa người dùng';
+                document.getElementById('userId').value = u.userId;
+                document.getElementById('userName').value = u.username;
+                document.getElementById('userEmail').value = u.email;
+                document.getElementById('userPassword').value = '';
+                document.getElementById('userPassword').required = false;
+                document.getElementById('passwordLabel').innerHTML = '<i class="bi bi-key me-1"></i>Mật khẩu mới';
+                document.getElementById('passwordHint').style.display = 'block';
+                document.getElementById('userPhone').value = u.phoneNumber || '';
+                document.getElementById('userRole').value = u.role || 'user';
+                document.getElementById('userStatus').value = u.status || 'active';
+                document.getElementById('statusGroup').style.display = 'block';
+                
+                // Reset validation state for edit mode
+                resetUserValidationState(true);
+                
+                // Trigger validation for existing data
+                validateUsername(u.username);
+                validateEmail(u.email);
+                validatePassword(''); // Empty = valid in edit mode
+                if (u.phoneNumber) validatePhone(u.phoneNumber);
+                
+                userModal.show();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: res.message,
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi kết nối',
+                text: 'Không thể tải thông tin người dùng',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    }
+
+    async function saveUser() {
+        const id = document.getElementById('userId').value;
+        const isEdit = id !== '0';
+
+        const username = document.getElementById('userName').value.trim();
+        const email = document.getElementById('userEmail').value.trim();
+        const password = document.getElementById('userPassword').value;
+        const phone = document.getElementById('userPhone').value.trim();
+
+        // Trigger validation
+        await validateUsername(username);
+        await validateEmail(email);
+        validatePassword(password);
+        if (phone) validatePhone(phone);
+
+        // Check validation state
+        if (!validationState.username || !validationState.email || !validationState.password || !validationState.phone) {
+            let errorMessages = [];
+            if (!validationState.username) errorMessages.push('Tên đăng nhập không hợp lệ');
+            if (!validationState.email) errorMessages.push('Email không hợp lệ');
+            if (!validationState.password) errorMessages.push('Mật khẩu không hợp lệ');
+            if (!validationState.phone) errorMessages.push('Số điện thoại không hợp lệ');
+            
+            Swal.fire({
+                icon: 'warning',
+                title: 'Thông tin không hợp lệ',
+                html: `<ul class="text-start">${errorMessages.map(m => `<li>${m}</li>`).join('')}</ul>`,
+                confirmButtonColor: '#ffc107'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Đang lưu...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const formData = new FormData();
+        if (isEdit) formData.append('userId', id);
+        formData.append('username', username);
+        formData.append('email', email);
+        if (password) formData.append('password', password);
+        if (phone) formData.append('phoneNumber', phone);
+        formData.append('role', document.getElementById('userRole').value);
+        if (isEdit) {
+            formData.append('status', document.getElementById('userStatus').value);
+        }
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+        try {
+            const url = isEdit ? '@Url.Action("UpdateUser", "Admin")' : '@Url.Action("CreateUser", "Admin")';
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData
+            });
+                
+            const res = await response.json();
+            if (res.success) {
+                userModal.hide();
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công!',
+                    text: res.message,
+                    confirmButtonColor: '#198754'
+                });
+                location.reload();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: res.message,
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        } catch (error) {
+            console.error('Save user error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi kết nối',
+                text: 'Đã xảy ra lỗi, vui lòng thử lại',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    }
+
+    async function deleteUser(userId, username) {
+        const result = await Swal.fire({
+            icon: 'warning',
+            title: 'Xóa người dùng',
+            html: `Bạn có chắc chắn muốn xóa người dùng "<strong>${username}</strong>"?<br><small class="text-muted">Hành động này không thể hoàn tác!</small>`,
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-trash me-1"></i>Xóa',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true
+        });
+
+        if (!result.isConfirmed) return;
+
+        Swal.fire({
+            title: 'Đang xóa...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const formData = new FormData();
+        formData.append('userId', userId);
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+        try {
+            const response = await fetch('@Url.Action("DeleteUser", "Admin")', {
+                method: 'POST',
+                body: formData
+            });
+                
+            const res = await response.json();
+            if (res.success) {
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Đã xóa!',
+                    text: res.message,
+                    confirmButtonColor: '#198754'
+                });
+                location.reload();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Không thể xóa',
+                    text: res.message,
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi kết nối',
+                text: 'Đã xảy ra lỗi, vui lòng thử lại',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    }
+
+    // Update user status
+    document.querySelectorAll('.btn-status').forEach(btn => {
             btn.addEventListener('click', async function() {
                 const userId = this.dataset.userId;
                 const status = this.dataset.status;
+                const actionText = status === 'locked' ? 'khóa' : 'mở khóa';
                 
-                if (!confirm(`Bạn có chắc muốn ${status === 'locked' ? 'khóa' : 'mở khóa'} tài khoản này?`)) return;
+                const result = await Swal.fire({
+                    icon: status === 'locked' ? 'warning' : 'question',
+                    title: `${status === 'locked' ? 'Khóa' : 'Mở khóa'} tài khoản`,
+                    text: `Bạn có chắc chắn muốn ${actionText} tài khoản này?`,
+                    showCancelButton: true,
+                    confirmButtonText: status === 'locked' ? '<i class="bi bi-lock me-1"></i>Khóa' : '<i class="bi bi-unlock me-1"></i>Mở khóa',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: status === 'locked' ? '#dc3545' : '#198754',
+                    cancelButtonColor: '#6c757d',
+                    reverseButtons: true
+                });
+
+                if (!result.isConfirmed) return;
                 
+                Swal.fire({
+                    title: 'Đang xử lý...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
                 const formData = new FormData();
                 formData.append('userId', userId);
                 formData.append('status', status);
                 formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
                 
-                const response = await fetch('@Url.Action("UpdateUserStatus", "Admin")', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                if (result.success) {
-                    location.reload();
-                } else {
-                    alert(result.message);
+                try {
+                    const response = await fetch('@Url.Action("UpdateUserStatus", "Admin")', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const res = await response.json();
+                    if (res.success) {
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Thành công!',
+                            text: res.message,
+                            confirmButtonColor: '#198754'
+                        });
+                        location.reload();
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi',
+                            text: res.message,
+                            confirmButtonColor: '#dc3545'
+                        });
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi kết nối',
+                        text: 'Đã xảy ra lỗi, vui lòng thử lại',
+                        confirmButtonColor: '#dc3545'
+                    });
                 }
             });
         });
         
         // Update user role
         document.querySelectorAll('.role-select').forEach(select => {
+            const originalValue = select.value;
+            
             select.addEventListener('change', async function() {
                 const userId = this.dataset.userId;
                 const role = this.value;
+                const roleText = {
+                    'user': 'Người dùng',
+                    'charity_org': 'Tổ chức từ thiện',
+                    'admin': 'Admin'
+                }[role] || role;
                 
-                if (!confirm('Bạn có chắc muốn thay đổi vai trò của người dùng này?')) {
-                    location.reload();
+                const result = await Swal.fire({
+                    icon: 'question',
+                    title: 'Thay đổi vai trò',
+                    html: `Bạn có chắc chắn muốn thay đổi vai trò thành <strong>${roleText}</strong>?`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Xác nhận',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: '#0d6efd',
+                    cancelButtonColor: '#6c757d',
+                    reverseButtons: true
+                });
+
+                if (!result.isConfirmed) {
+                    this.value = originalValue;
                     return;
                 }
                 
+                Swal.fire({
+                    title: 'Đang cập nhật...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
                 const formData = new FormData();
                 formData.append('userId', userId);
                 formData.append('role', role);
                 formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
                 
-                const response = await fetch('@Url.Action("UpdateUserRole", "Admin")', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                if (result.success) {
-                    showToast(result.message, 'success');
-                } else {
-                    alert(result.message);
+                try {
+                    const response = await fetch('@Url.Action("UpdateUserRole", "Admin")', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const res = await response.json();
+                    if (res.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Đã cập nhật!',
+                            text: res.message,
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi',
+                            text: res.message,
+                            confirmButtonColor: '#dc3545'
+                        });
+                        location.reload();
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi kết nối',
+                        text: 'Đã xảy ra lỗi, vui lòng thử lại',
+                        confirmButtonColor: '#dc3545'
+                    });
                     location.reload();
                 }
             });
