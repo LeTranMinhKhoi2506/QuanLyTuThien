@@ -1,0 +1,71 @@
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Từ Thiện</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/TuThien.styles.css" asp-append-version="true" />
+
+    <style>
+        /* Minimal helper styles to resemble UNICEF-like hero/layout. Move to TuThien.styles.css */
+        .hero {
+            background: linear-gradient(120deg, #0b63b7 0%, #2b9bd3 60%);
+            color: white;
+            padding: 60px 0;
+            border-radius: 6px;
+            margin-bottom: 24px;
+        }
+        .hero h1 { font-weight:700; }
+        .site-sidebar .card { border-radius:6px; }
+    </style>
+</head>
+<body>
+    @await Html.PartialAsync("~/Views/Shared/Header.cshtml")
+    
+
+    <main class="container my-4">
+        <section class="hero">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-md-7">
+                        <h1>@ViewData["HeroTitle"]Tạo nên sự khác biệt</h1>
+                        <p class="lead">@ViewData["HeroSubtitle"]Chiến dịch chung tay thay đổi cuộc sống và làm mọi thứ tốt đẹp hơn</p>
+                        <p>
+                            <a class="btn btn-light btn-lg me-2" href="/campaigns">Khám phá chiến dịch</a>
+                            <a class="btn btn-outline-light btn-lg" href="/donate">Quyên góp ngay</a>
+                        </p>
+                    </div>
+                    <div class="col-md-5 text-center">
+                        <!-- Optional hero image -->
+                        <img src="~/images/hero-placeholder.png" alt="Hình ảnh chính" class="img-fluid rounded" style="max-height:220px;object-fit:cover" />
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="row">
+            <div class="col-md-3">
+                @await Html.PartialAsync("~/Views/Shared/Sidebar.cshtml")
+            </div>
+
+            <div class="col-md-9">
+                @RenderBody()
+            </div>
+        </div>
+    </main>
+
+    @await Html.PartialAsync("~/Views/Shared/Footer.cshtml")
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

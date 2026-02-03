@@ -1,0 +1,88 @@
+﻿@{
+    Layout = null;
+    var userId = Context.Session.GetInt32("UserId");
+    var username = Context.Session.GetString("Username");
+    var isLoggedIn = userId.HasValue;
+}
+<header class="site-header bg-white shadow-sm">
+    <div class="container-fluid">
+        <nav class="navbar navbar-expand-md">
+            <a class="navbar-brand d-flex align-items-center" href="~/">
+                <div class="me-2" style="width:40px;height:40px;background:#0b63b7;border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700">
+                    TT
+                </div>
+                <div class="ms-1">
+                    <div class="brand-title">Từ Thiện</div>
+                    <small class="text-muted d-block">Hỗ trợ cộng đồng</small>
+                </div>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                    <li class="nav-item"><a class="nav-link" asp-area="" asp-controller="TrangChu" asp-action="Index">Trang chủ</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/where-we-work">Nơi chúng tôi làm việc</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/how-to-help">Cách giúp đỡ</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">Tin tức</a></li>
+                </ul>
+
+                <form class="d-flex me-3" role="search" method="get" action="/search">
+                    <input class="form-control form-control-sm me-2" type="search" name="q" placeholder="Tìm kiếm" aria-label="Tìm kiếm" />
+                    <button class="btn btn-outline-secondary btn-sm" type="submit">Tìm</button>
+                </form>
+
+                <div class="d-flex align-items-center">
+                    <div class="me-2">
+                        <select class="form-select form-select-sm" onchange="location = this.value;">
+                            <option value="#">VN</option>
+                            <option value="#">EN</option>
+                        </select>
+                    </div>
+                    
+                    @if (isLoggedIn)
+                    {
+                        <!-- User đã đăng nhập -->
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle me-1"></i>@username
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                                <li><a class="dropdown-item" href="@Url.Action("Profile", "Account")">
+                                    <i class="bi bi-person me-2"></i>Tài khoản của tôi
+                                </a></li>
+                                <li><a class="dropdown-item" href="/my-campaigns">
+                                    <i class="bi bi-heart me-2"></i>Chiến dịch của tôi
+                                </a></li>
+                                <li><a class="dropdown-item" href="/my-donations">
+                                    <i class="bi bi-gift me-2"></i>Quyên góp của tôi
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" asp-controller="Account" asp-action="Logout" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- User chưa đăng nhập -->
+                        <a class="btn btn-outline-primary btn-sm me-2" href="@Url.Action("Login", "Account")">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Đăng nhập
+                        </a>
+                        <a class="btn btn-primary btn-sm" href="@Url.Action("Register", "Account")">
+                            <i class="bi bi-person-plus me-1"></i>Đăng ký
+                        </a>
+                    }
+                </div>
+            </div>
+        </nav>
+    </div>
+</header>

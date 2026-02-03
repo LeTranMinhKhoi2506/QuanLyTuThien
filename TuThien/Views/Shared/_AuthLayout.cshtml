@@ -1,0 +1,28 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Từ Thiện</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/Auth.css" asp-append-version="true" />
+</head>
+<body>
+    <!-- Video Background -->
+    <div class="auth-video-background">
+        <video autoplay muted loop playsinline>
+            <source src="D:\baiTapOnweb\TKYC\H-th-ng-qu-n-l-t-thi-n\.github\TuThien\TuThien\wwwroot\Images\Video\VideoTrailer.mp4" type="video/mp4">
+            <!-- Fallback nếu không hỗ trợ video -->
+        </video>
+        <div class="auth-video-overlay"></div>
+    </div>
+
+    @RenderBody()
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

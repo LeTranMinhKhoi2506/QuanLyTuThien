@@ -1,0 +1,148 @@
+﻿@model TuThien.Models.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Đăng ký tài khoản";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/Auth.css" asp-append-version="true" />
+
+<div class="auth-page">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="auth-card">
+                    <div class="auth-header text-center">
+                        <div class="auth-logo">
+                            <i class="bi bi-person-plus-fill"></i>
+                        </div>
+                        <h2>Đăng ký tài khoản</h2>
+                        <p class="text-muted">Tham gia cùng chúng tôi để làm từ thiện!</p>
+                    </div>
+
+                    <div class="auth-body">
+                        <form asp-action="Register" method="post">
+                            @Html.AntiForgeryToken()
+                            
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Username" class="form-label">
+                                        <i class="bi bi-person me-2"></i>Tên đăng nhập *
+                                    </label>
+                                    <input asp-for="Username" class="form-control" 
+                                           placeholder="Nhập tên đăng nhập" autofocus />
+                                    <span asp-validation-for="Username" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Email" class="form-label">
+                                        <i class="bi bi-envelope me-2"></i>Email *
+                                    </label>
+                                    <input asp-for="Email" class="form-control" 
+                                           placeholder="Nhập email" />
+                                    <span asp-validation-for="Email" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="FullName" class="form-label">
+                                    <i class="bi bi-card-text me-2"></i>Họ và tên *
+                                </label>
+                                <input asp-for="FullName" class="form-control" 
+                                       placeholder="Nhập họ và tên đầy đủ" />
+                                <span asp-validation-for="FullName" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="PhoneNumber" class="form-label">
+                                    <i class="bi bi-telephone me-2"></i>Số điện thoại
+                                </label>
+                                <input asp-for="PhoneNumber" class="form-control" 
+                                       placeholder="Nhập số điện thoại (tùy chọn)" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Password" class="form-label">
+                                        <i class="bi bi-key me-2"></i>Mật khẩu *
+                                    </label>
+                                    <div class="password-input-group">
+                                        <input asp-for="Password" class="form-control" 
+                                               placeholder="Nhập mật khẩu" type="password" id="passwordInput" />
+                                        <button type="button" class="password-toggle" onclick="togglePassword('passwordInput', 'toggleIcon1')">
+                                            <i class="bi bi-eye" id="toggleIcon1"></i>
+                                        </button>
+                                    </div>
+                                    <span asp-validation-for="Password" class="text-danger"></span>
+                                    <small class="form-text text-muted">
+                                        Mật khẩu phải có ít nhất 6 ký tự
+                                    </small>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="ConfirmPassword" class="form-label">
+                                        <i class="bi bi-shield-check me-2"></i>Xác nhận mật khẩu *
+                                    </label>
+                                    <div class="password-input-group">
+                                        <input asp-for="ConfirmPassword" class="form-control" 
+                                               placeholder="Nhập lại mật khẩu" type="password" id="confirmPasswordInput" />
+                                        <button type="button" class="password-toggle" onclick="togglePassword('confirmPasswordInput', 'toggleIcon2')">
+                                            <i class="bi bi-eye" id="toggleIcon2"></i>
+                                        </button>
+                                    </div>
+                                    <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="agreeTerms" required />
+                                    <label class="form-check-label" for="agreeTerms">
+                                        Tôi đồng ý với <a href="#">Điều khoản sử dụng</a> và 
+                                        <a href="#">Chính sách bảo mật</a>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
+                                <i class="bi bi-check-circle me-2"></i>Đăng ký
+                            </button>
+
+                            <div class="text-center">
+                                <p class="text-muted mb-0">
+                                    Đã có tài khoản? 
+                                    <a href="@Url.Action("Login", "Account")" class="register-link">
+                                        Đăng nhập ngay
+                                    </a>
+                                </p>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        function togglePassword(inputId, iconId) {
+            const passwordInput = document.getElementById(inputId);
+            const toggleIcon = document.getElementById(iconId);
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('bi-eye');
+                toggleIcon.classList.add('bi-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('bi-eye-slash');
+                toggleIcon.classList.add('bi-eye');
+            }
+        }
+    </script>
+}

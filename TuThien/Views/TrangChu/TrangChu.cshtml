@@ -1,0 +1,20 @@
+﻿@model IEnumerable<TuThien.Models.Category>
+
+@{
+    ViewData["Title"] = "TrangChu";
+}
+
+<link rel="stylesheet" href="~/css/TrangChu.css" asp-append-version="true" />
+
+<div class="page-trangchu">
+    <h2 class="mb-4">Chiến dịch theo danh mục</h2>
+
+    <div id="campaign-list-container">
+       @await Html.PartialAsync("patiralView", Model)
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/trangchu.js" asp-append-version="true"></script>
+}
+

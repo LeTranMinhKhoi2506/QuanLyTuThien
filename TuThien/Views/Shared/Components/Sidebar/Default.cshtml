@@ -1,0 +1,20 @@
+﻿@model IEnumerable<Category>
+
+<div class="card-header">
+    Danh mục
+</div>
+<ul class="list-group list-group-flush">
+    @if(Model != null && Model.Any())
+    {
+        <li class="list-group-item">
+            <a href="#" class="category-filter" data-category-id="">Tất cả</a>
+        </li>
+        @foreach (var cat in Model)
+        {
+          
+            <li class="list-group-item">
+                <a href="#" class="category-filter" data-category-id="@cat.CategoryId">@cat.Name</a>
+            </li>
+        }
+    }
+</ul>
