@@ -1,0 +1,139 @@
+@model TuThien.Models.CampaignCreateViewModel
+
+@{
+    ViewData["Title"] = "Tạo chiến dịch mới";
+    Layout = "~/Views/Shared/_CampaignLayout.cshtml";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card card-modern border-0">
+                <div class="card-body p-4 p-md-5">
+                    
+                    <div class="text-center mb-5">
+                        <h2 class="fw-bold text-primary-custom">
+                            <i class="bi bi-heart-pulse-fill me-2"></i>Tạo chiến dịch mới
+                        </h2>
+                        <p class="text-muted">Hãy chia sẻ câu chuyện và kêu gọi sự giúp đỡ từ cộng đồng</p>
+                    </div>
+
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger mb-4">
+                            @TempData["ErrorMessage"]
+                        </div>
+                    }
+
+                    <form asp-action="Create" enctype="multipart/form-data">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4" role="alert"></div>
+
+                        <!-- Basic Info -->
+                        <h5 class="text-primary-custom mb-3 border-bottom pb-2">1. Thông tin cơ bản</h5>
+                        
+                        <div class="mb-4">
+                            <label asp-for="Title" class="form-label fw-bold">Tiêu đề chiến dịch <span class="text-danger">*</span></label>
+                            <input asp-for="Title" class="form-control form-control-lg" placeholder="VD: Giúp đỡ trẻ em vùng cao..." />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label asp-for="CategoryId" class="form-label fw-bold">Danh mục <span class="text-danger">*</span></label>
+                                <select asp-for="CategoryId" class="form-select form-select-lg" asp-items="ViewBag.CategoryId">
+                                    <option value="">-- Chọn danh mục --</option>
+                                </select>
+                                <span asp-validation-for="CategoryId" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="TargetAmount" class="form-label fw-bold">Số tiền mục tiêu (VNĐ) <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-lg">
+                                    <input asp-for="TargetAmount" class="form-control" type="number" step="100000" min="100000" />
+                                    <span class="input-group-text bg-light fw-bold">₫</span>
+                                </div>
+                                <span asp-validation-for="TargetAmount" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Description" class="form-label fw-bold">Câu chuyện của bạn <span class="text-danger">*</span></label>
+                            <textarea asp-for="Description" class="form-control" rows="8" placeholder="Kể chi tiết về hoàn cảnh, lý do gây quỹ và kế hoạch sử dụng tiền..."></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <!-- Time & Settings -->
+                        <h5 class="text-primary-custom mb-3 border-bottom pb-2 mt-5">2. Thời gian & Cài đặt</h5>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label asp-for="StartDate" class="form-label fw-bold">Ngày bắt đầu <span class="text-danger">*</span></label>
+                                <input asp-for="StartDate" class="form-control form-control-lg" />
+                                <span asp-validation-for="StartDate" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="EndDate" class="form-label fw-bold">Ngày kết thúc <span class="text-danger">*</span></label>
+                                <input asp-for="EndDate" class="form-control form-control-lg" />
+                                <span asp-validation-for="EndDate" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="ExcessFundOption" class="form-label fw-bold">Phương án xử lý quỹ dư thừa</label>
+                            <select asp-for="ExcessFundOption" class="form-select">
+                                <option value="next_case">Chuyển cho hoàn cảnh tiếp theo</option>
+                                <option value="general_fund">Sung vào quỹ chung</option>
+                                <option value="extend">Mở rộng phạm vi giúp đỡ</option>
+                            </select>
+                            <small class="text-muted">Lựa chọn cách xử lý nếu số tiền quyên góp vượt quá mục tiêu.</small>
+                        </div>
+
+                        <!-- Images -->
+                        <h5 class="text-primary-custom mb-3 border-bottom pb-2 mt-5">3. Hình ảnh</h5>
+
+                        <div class="mb-4">
+                            <label asp-for="ThumbnailImage" class="form-label fw-bold">Ảnh đại diện chiến dịch</label>
+                            <div class="card bg-light border-dashed text-center p-4" onclick="document.getElementById('ThumbnailImage').click()" style="cursor: pointer; border: 2px dashed #dee2e6;">
+                                <div class="my-3">
+                                    <i class="bi bi-cloud-arrow-up display-4 text-muted"></i>
+                                </div>
+                                <p class="mb-0 text-muted">Nhấn để tải ảnh lên (JPG, PNG)</p>
+                                <div id="imagePreview" class="mt-3 d-none">
+                                    <img src="" alt="Preview" class="img-fluid rounded shadow-sm" style="max-height: 200px;">
+                                </div>
+                            </div>
+                            <input asp-for="ThumbnailImage" class="d-none" accept="image/*" onchange="previewImage(this)" />
+                            <span asp-validation-for="ThumbnailImage" class="text-danger"></span>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="d-grid gap-2 mt-5">
+                            <button type="submit" class="btn btn-primary-gradient btn-lg py-3 text-uppercase fw-bold text-white shadow">
+                                <i class="bi bi-send-fill me-2"></i>Gửi yêu cầu duyệt
+                            </button>
+                            <a asp-controller="TrangChu" asp-action="Index" class="btn btn-light btn-lg text-muted">Hủy bỏ</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var preview = document.getElementById('imagePreview');
+                    var img = preview.querySelector('img');
+                    img.src = e.target.result;
+                    preview.classList.remove('d-none');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
+}

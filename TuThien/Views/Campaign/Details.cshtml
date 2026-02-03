@@ -1,0 +1,478 @@
+@model TuThien.Models.Campaign
+
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "~/Views/Shared/_CampaignLayout.cshtml";
+    
+    var thumb = string.IsNullOrEmpty(Model.ThumbnailUrl) ? Url.Content("~/Images/DefaultPic.png") : Model.ThumbnailUrl;
+    decimal current = Model.CurrentAmount ?? 0m;
+    decimal target = Model.TargetAmount;
+    int percent = target > 0 ? (int)System.Math.Min(100, System.Math.Round((current / target) * 100)) : 0;
+    
+    var daysLeft = Model.EndDate.HasValue ? (Model.EndDate.Value - DateTime.Now).Days : 0;
+    var donorCount = Model.Donations?.Count ?? 0;
+}
+
+<link rel="stylesheet" href="~/css/CampaignDetails.css" asp-append-version="true" />
+
+<div class="campaign-details-page">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="/campaigns">Chiến dịch</a></li>
+            @if (Model.Category != null)
+            {
+                <li class="breadcrumb-item"><a href="/campaigns/category/@Model.Category.CategoryId">@Model.Category.Name</a></li>
+            }
+            <li class="breadcrumb-item active" aria-current="page">@Model.Title</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Campaign Header -->
+            <div class="campaign-header-section mb-4">
+                @if (Model.Category != null)
+                {
+                    <span class="category-badge">
+                        <i class="bi bi-tag-fill me-1"></i>@Model.Category.Name
+                    </span>
+                }
+                <h1 class="campaign-main-title">@Model.Title</h1>
+                
+                <div class="campaign-meta d-flex align-items-center gap-4 mt-3">
+                    <div class="meta-item">
+                        <i class="bi bi-person-circle me-2"></i>
+                        <span>Bởi <strong>@Model.Creator?.Username</strong></span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="bi bi-calendar-event me-2"></i>
+                        <span>@Model.CreatedAt?.ToString("dd/MM/yyyy")</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="bi bi-eye me-2"></i>
+                        <span>1,234 lượt xem</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campaign Image -->
+            <div class="campaign-main-image mb-4">
+                <img src="@thumb" alt="@Model.Title" class="img-fluid rounded-3 shadow" 
+                     onerror="this.src='@Url.Content("~/Images/DefaultPic.png")'" />
+            </div>
+
+            <!-- Campaign Tabs -->
+            <div class="campaign-tabs mb-4">
+                <ul class="nav nav-tabs" id="campaignTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="story-tab" data-bs-toggle="tab" data-bs-target="#story" type="button">
+                            <i class="bi bi-book me-2"></i>Câu chuyện
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="updates-tab" data-bs-toggle="tab" data-bs-target="#updates" type="button">
+                            <i class="bi bi-megaphone me-2"></i>Cập nhật <span class="badge bg-primary ms-1">@Model.CampaignUpdates?.Count</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="donors-tab" data-bs-toggle="tab" data-bs-target="#donors" type="button">
+                            <i class="bi bi-people me-2"></i>Nhà quyên góp <span class="badge bg-primary ms-1">@donorCount</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="comments-tab" data-bs-toggle="tab" data-bs-target="#comments" type="button">
+                            <i class="bi bi-chat-dots me-2"></i>Bình luận <span class="badge bg-primary ms-1">@Model.Comments?.Count</span>
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="campaignTabContent">
+                    <!-- Story Tab -->
+                    <div class="tab-pane fade show active" id="story" role="tabpanel">
+                        <div class="story-content">
+                            <h3 class="section-title">Về chiến dịch này</h3>
+                            <div class="story-text">
+                                @Html.Raw(Model.Description?.Replace("\n", "<br/>"))
+                            </div>
+
+                            @if (Model.CampaignMilestones?.Any() == true)
+                            {
+                                <div class="milestones-section mt-5">
+                                    <h3 class="section-title">Mốc quan trọng</h3>
+                                    <div class="timeline">
+                                        @{
+                                            // Sắp xếp theo MilestoneId để đảm bảo thứ tự đúng
+                                            var milestones = Model.CampaignMilestones.OrderBy(m => m.MilestoneId).ToList();
+                                            
+                                            // Tính toán trạng thái của từng mốc theo logic tuần tự
+                                            bool allPreviousCompleted = true;
+                                            
+                                            for (int i = 0; i < milestones.Count; i++)
+                                            {
+                                                var milestone = milestones[i];
+                                                var milestoneNumber = i + 1;
+                                                
+                                                // Kiểm tra điều kiện đạt mốc này
+                                                bool isReached = current >= milestone.AmountNeeded && allPreviousCompleted;
+                                                
+                                                // Xác định trạng thái: completed, active, locked
+                                                string status = "locked";
+                                                if (isReached)
+                                                {
+                                                    status = "completed";
+                                                }
+                                                else if (allPreviousCompleted)
+                                                {
+                                                    status = "active";
+                                                }
+                                                
+                                                // Cập nhật flag cho mốc tiếp theo
+                                                if (!isReached)
+                                                {
+                                                    allPreviousCompleted = false;
+                                                }
+                                                
+                                                <div class="timeline-item @status">
+                                                    <div class="timeline-marker">
+                                                        @if (status == "completed")
+                                                        {
+                                                            <i class="bi bi-check-circle-fill"></i>
+                                                        }
+                                                        else if (status == "active")
+                                                        {
+                                                            <i class="bi bi-circle-half"></i>
+                                                        }
+                                                        else
+                                                        {
+                                                            <i class="bi bi-lock-fill"></i>
+                                                        }
+                                                    </div>
+                                                    <div class="timeline-content">
+                                                        <div class="milestone-badge milestone-badge-@status">
+                                                            Mốc @milestoneNumber
+                                                        </div>
+                                                        <h5>@milestone.Title</h5>
+                                                        <p class="text-muted mb-2">
+                                                            <strong>Mục tiêu: @String.Format("{0:N0}", milestone.AmountNeeded) ₫</strong>
+                                                        </p>
+                                                        
+                                                        @if (milestone.Deadline.HasValue)
+                                                        {
+                                                            <p class="text-muted mb-2">
+                                                                <i class="bi bi-calendar3"></i> 
+                                                                Deadline: @milestone.Deadline.Value.ToString("dd/MM/yyyy")
+                                                            </p>
+                                                        }
+                                                     
+                                                        @if (status == "completed")
+                                                        {
+                                                            <span class="badge bg-success mt-2">
+                                                                <i class="bi bi-check2"></i> Đã đạt được
+                                                            </span>
+                                                        }
+                                                        else if (status == "active")
+                                                        {
+                                                            var remaining = milestone.AmountNeeded - current;
+                                                            var progressPercent = current > 0 && milestone.AmountNeeded > 0 
+                                                                ? (int)((current / milestone.AmountNeeded) * 100) 
+                                                                : 0;
+                                                            
+                                                            <div class="milestone-progress mt-2">
+                                                                <div class="progress mb-2" style="height: 8px;">
+                                                                    <div class="progress-bar bg-warning" role="progressbar" 
+                                                                         style="width: @progressPercent%"></div>
+                                                                </div>
+                                                                <span class="badge bg-warning text-dark">
+                                                                    <i class="bi bi-hourglass-split"></i> Đang tiến hành - Còn @String.Format("{0:N0}", remaining) ₫
+                                                                </span>
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary mt-2">
+                                                                <i class="bi bi-lock"></i> Chưa mở khóa
+                                                            </span>
+                                                            <p class="text-muted small mt-2 mb-0">
+                                                                <i class="bi bi-info-circle"></i> 
+                                                                Hoàn thành mốc @(milestoneNumber - 1) để mở khóa
+                                                            </p>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (Model.CampaignDocuments?.Any() == true)
+                            {
+                                <div class="documents-section mt-5">
+                                    <h3 class="section-title">Tài liệu đính kèm</h3>
+                                    <div class="documents-list">
+                                        @foreach (var doc in Model.CampaignDocuments)
+                                        {
+                                            <a href="@doc.FileUrl" target="_blank" class="document-item">
+                                                <i class="bi bi-file-earmark-pdf me-2"></i>
+                                                <span>@(doc.Description ?? "Tài liệu")</span>
+                                                <i class="bi bi-download ms-auto"></i>
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Updates Tab -->
+                    <div class="tab-pane fade" id="updates" role="tabpanel">
+                        <div class="updates-content">
+                            @if (Model.CampaignUpdates?.Any() == true)
+                            {
+                                @foreach (var update in Model.CampaignUpdates.OrderByDescending(u => u.CreatedAt))
+                                {
+                                    <div class="update-item">
+                                        <div class="update-header">
+                                            <h5>@update.Title</h5>
+                                            <small class="text-muted">@update.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
+                                        </div>
+                                        <div class="update-body">
+                                            @Html.Raw(update.Content?.Replace("\n", "<br/>"))
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="empty-state text-center py-5">
+                                    <i class="bi bi-megaphone" style="font-size: 3rem; color: #ccc;"></i>
+                                    <p class="text-muted mt-3">Chưa có cập nhật nào</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Donors Tab -->
+                    <div class="tab-pane fade" id="donors" role="tabpanel">
+                        <div class="donors-content">
+                            @if (Model.Donations?.Any() == true)
+                            {
+                                <div class="donors-stats mb-4">
+                                    <div class="row text-center">
+                                        <div class="col-md-4">
+                                            <div class="stat-box">
+                                                <h3>@donorCount</h3>
+                                                <p class="text-muted">Nhà quyên góp</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="stat-box">
+                                                <h3>@String.Format("{0:N0}", current) ₫</h3>
+                                                <p class="text-muted">Đã quyên góp</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="stat-box">
+                                                <h3>@String.Format("{0:N0}", Model.Donations.Average(d => d.Amount)) ₫</h3>
+                                                <p class="text-muted">Trung bình</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="donors-list">
+                                    @foreach (var donation in Model.Donations.OrderByDescending(d => d.DonatedAt))
+                                    {
+                                        <div class="donor-item">
+                                            <div class="donor-avatar">
+                                                <i class="bi bi-person-circle"></i>
+                                            </div>
+                                            <div class="donor-info">
+                                                <h6>@(donation.IsAnonymous == true ? "Ẩn danh" : donation.User?.Username ?? "Người quyên góp")</h6>
+                                                <p class="text-muted mb-0">@donation.DonatedAt?.ToString("dd/MM/yyyy HH:mm")</p>
+                                            </div>
+                                            <div class="donor-amount">
+                                                <strong>@String.Format("{0:N0}", donation.Amount) ₫</strong>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="empty-state text-center py-5">
+                                    <i class="bi bi-people" style="font-size: 3rem; color: #ccc;"></i>
+                                    <p class="text-muted mt-3">Chưa có nhà quyên góp nào</p>
+                                    <p class="text-muted">Hãy là người đầu tiên đóng góp!</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Comments Tab -->
+                    <div class="tab-pane fade" id="comments" role="tabpanel">
+                        <div class="comments-content">
+                            <div class="comment-form mb-4">
+                                <h5>Để lại bình luận</h5>
+                                <form>
+                                    <div class="mb-3">
+                                        <textarea class="form-control" rows="3" placeholder="Chia sẻ suy nghĩ của bạn..."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-send me-2"></i>Gửi bình luận
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div class="comments-list">
+                                @if (Model.Comments?.Any() == true)
+                                {
+                                    @foreach (var comment in Model.Comments.OrderByDescending(c => c.CreatedAt))
+                                    {
+                                        <div class="comment-item">
+                                            <div class="comment-avatar">
+                                                <i class="bi bi-person-circle"></i>
+                                            </div>
+                                            <div class="comment-body">
+                                                <div class="comment-header">
+                                                    <h6>@comment.User?.Username</h6>
+                                                    <small class="text-muted">@comment.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
+                                                </div>
+                                                <p>@comment.Content</p>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="empty-state text-center py-5">
+                                        <i class="bi bi-chat-dots" style="font-size: 3rem; color: #ccc;"></i>
+                                        <p class="text-muted mt-3">Chưa có bình luận nào</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="campaign-sidebar sticky-top">
+                <!-- Donation Card -->
+                <div class="donation-card">
+                    <div class="donation-progress">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="amount-raised">
+                                <strong>@String.Format("{0:N0}", current) ₫</strong>
+                            </span>
+                            <span class="percentage">@percent%</span>
+                        </div>
+                        <div class="progress campaign-progress-bar mb-2">
+                            <div class="progress-bar" style="width:@percent%;"></div>
+                        </div>
+                        <p class="text-muted mb-0">
+                            Mục tiêu: <strong>@String.Format("{0:N0}", target) ₫</strong>
+                        </p>
+                    </div>
+
+                    <div class="donation-stats">
+                        <div class="stat-row">
+                            <i class="bi bi-people-fill"></i>
+                            <span><strong>@donorCount</strong> nhà quyên góp</span>
+                        </div>
+                        <div class="stat-row">
+                            <i class="bi bi-calendar-check"></i>
+                            <span><strong>@(daysLeft > 0 ? daysLeft : 0)</strong> ngày còn lại</span>
+                        </div>
+                        @if (Model.StartDate.HasValue)
+                        {
+                            <div class="stat-row">
+                                <i class="bi bi-clock-history"></i>
+                                <span>Bắt đầu: <strong>@Model.StartDate.Value.ToString("dd/MM/yyyy")</strong></span>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="donation-actions">
+                        <a href="/donate/@Model.CampaignId" class="btn btn-primary btn-lg w-100 mb-2">
+                            <i class="bi bi-heart-fill me-2"></i>Quyên góp ngay
+                        </a>
+                        <button class="btn btn-outline-primary w-100">
+                            <i class="bi bi-share me-2"></i>Chia sẻ chiến dịch
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Campaign Status -->
+                <div class="status-card mt-3">
+                    <h6 class="card-title">
+                        <i class="bi bi-info-circle me-2"></i>Trạng thái
+                    </h6>
+                    <div class="status-badge status-@(Model.Status?.ToLower() ?? "active")">
+                        @switch (Model.Status?.ToLower())
+                        {
+                            case "active":
+                                <i class="bi bi-check-circle-fill me-2"></i>
+                                <span>Đang hoạt động</span>
+                                break;
+                            case "completed":
+                                <i class="bi bi-flag-fill me-2"></i>
+                                <span>Đã hoàn thành</span>
+                                break;
+                            case "pending":
+                            case "pending_approval":
+                                <i class="bi bi-clock-fill me-2"></i>
+                                <span>Đang chờ duyệt</span>
+                                break;
+                            default:
+                                <span>@Model.Status</span>
+                                break;
+                        }
+                    </div>
+                </div>
+
+                <!-- Creator Card -->
+                <div class="creator-card mt-3">
+                    <h6 class="card-title">
+                        <i class="bi bi-person-badge me-2"></i>Người tạo chiến dịch
+                    </h6>
+                    <div class="creator-info">
+                        <div class="creator-avatar">
+                            <i class="bi bi-person-circle"></i>
+                        </div>
+                        <div>
+                            <h6>@Model.Creator?.Username</h6>
+                            <p class="text-muted mb-0">@Model.Creator?.Email</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Share Card -->
+                <div class="share-card mt-3">
+                    <h6 class="card-title">
+                        <i class="bi bi-share me-2"></i>Chia sẻ
+                    </h6>
+                    <div class="share-buttons">
+                        <a href="#" class="share-btn facebook">
+                            <i class="bi bi-facebook"></i>
+                        </a>
+                        <a href="#" class="share-btn twitter">
+                            <i class="bi bi-twitter"></i>
+                        </a>
+                        <a href="#" class="share-btn linkedin">
+                            <i class="bi bi-linkedin"></i>
+                        </a>
+                        <a href="#" class="share-btn copy">
+                            <i class="bi bi-link-45deg"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
