@@ -12,7 +12,7 @@ builder.Services.AddControllersWithViews();
 // Add Session support
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30); // Session timeout 30 phút
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // Session timeout
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
@@ -35,7 +35,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// Enable Session (ph?i ??t tr??c UseAuthorization)
+// Enable Session
 app.UseSession();
 
 app.UseAuthorization();

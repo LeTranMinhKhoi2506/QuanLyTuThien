@@ -1,0 +1,215 @@
+@model List<TuThien.Models.Report>
+@{
+    ViewData["Title"] = "Báo cáo sai phạm";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-auto">
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="@Url.Action("Reports", "Admin")" class="btn @(string.IsNullOrEmpty(ViewBag.Status) ? "btn-primary" : "btn-outline-primary")">
+                        Tất cả
+                    </a>
+                    <a href="@Url.Action("Reports", "Admin", new { status = "pending" })" class="btn @(ViewBag.Status == "pending" ? "btn-warning" : "btn-outline-warning")">
+                        <i class="bi bi-clock me-1"></i>Chờ xử lý
+                        @if (ViewBag.PendingCount > 0)
+                        {
+                            <span class="badge bg-dark ms-1">@ViewBag.PendingCount</span>
+                        }
+                    </a>
+                    <a href="@Url.Action("Reports", "Admin", new { status = "reviewed" })" class="btn @(ViewBag.Status == "reviewed" ? "btn-info" : "btn-outline-info")">
+                        <i class="bi bi-eye me-1"></i>Đã xem xét
+                    </a>
+                    <a href="@Url.Action("Reports", "Admin", new { status = "resolved" })" class="btn @(ViewBag.Status == "resolved" ? "btn-success" : "btn-outline-success")">
+                        <i class="bi bi-check-circle me-1"></i>Đã xử lý
+                    </a>
+                    <a href="@Url.Action("Reports", "Admin", new { status = "dismissed" })" class="btn @(ViewBag.Status == "dismissed" ? "btn-secondary" : "btn-outline-secondary")">
+                        <i class="bi bi-x-circle me-1"></i>Bác bỏ
+                    </a>
+                </div>
+            </div>
+            <div class="col-auto">
+                <select class="form-select" onchange="location.href='?status=@ViewBag.Status&targetType='+this.value">
+                    <option value="">Tất cả loại</option>
+                    <option value="campaign" selected="@(ViewBag.TargetType == "campaign")">Chiến dịch</option>
+                    <option value="user" selected="@(ViewBag.TargetType == "user")">Người dùng</option>
+                    <option value="comment" selected="@(ViewBag.TargetType == "comment")">Bình luận</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-flag me-2"></i>Danh sách báo cáo
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Loại</th>
+                        <th>Đối tượng</th>
+                        <th>Người báo cáo</th>
+                        <th>Lý do</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày báo cáo</th>
+                        <th class="text-center">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                Không có báo cáo nào
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var report in Model)
+                    {
+                        <tr>
+                            <td><code>#@report.ReportId</code></td>
+                            <td>
+                                @{
+                                    var typeBadge = report.TargetType switch
+                                    {
+                                        "campaign" => "bg-primary",
+                                        "user" => "bg-info",
+                                        "comment" => "bg-secondary",
+                                        _ => "bg-dark"
+                                    };
+                                    var typeText = report.TargetType switch
+                                    {
+                                        "campaign" => "Chiến dịch",
+                                        "user" => "Người dùng",
+                                        "comment" => "Bình luận",
+                                        _ => report.TargetType
+                                    };
+                                }
+                                <span class="badge @typeBadge">@typeText</span>
+                            </td>
+                            <td><code>ID: @report.TargetId</code></td>
+                            <td>@report.Reporter?.Username</td>
+                            <td>
+                                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="@report.Reason">
+                                    @report.Reason
+                                </span>
+                            </td>
+                            <td>
+                                @{
+                                    var statusBadge = report.Status switch
+                                    {
+                                        "pending" => "badge-pending",
+                                        "reviewed" => "bg-info",
+                                        "resolved" => "badge-approved",
+                                        "dismissed" => "bg-secondary",
+                                        _ => "bg-dark"
+                                    };
+                                    var statusText = report.Status switch
+                                    {
+                                        "pending" => "Chờ xử lý",
+                                        "reviewed" => "Đã xem xét",
+                                        "resolved" => "Đã xử lý",
+                                        "dismissed" => "Bác bỏ",
+                                        _ => report.Status
+                                    };
+                                }
+                                <span class="badge @statusBadge">@statusText</span>
+                            </td>
+                            <td>
+                                <small>@report.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
+                            </td>
+                            <td class="text-center">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        Xử lý
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <button class="dropdown-item" onclick="updateReportStatus(@report.ReportId, 'reviewed')">
+                                                <i class="bi bi-eye me-2"></i>Đánh dấu đã xem
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item text-success" onclick="updateReportStatus(@report.ReportId, 'resolved')">
+                                                <i class="bi bi-check-circle me-2"></i>Đã xử lý
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item text-muted" onclick="updateReportStatus(@report.ReportId, 'dismissed')">
+                                                <i class="bi bi-x-circle me-2"></i>Bác bỏ
+                                            </button>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        @if (report.TargetType == "campaign")
+                                        {
+                                            <li>
+                                                <a class="dropdown-item" href="@Url.Action("CampaignDetail", "Admin", new { id = report.TargetId })">
+                                                    <i class="bi bi-megaphone me-2"></i>Xem chiến dịch
+                                                </a>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    @if (ViewBag.TotalPages > 1)
+    {
+        <div class="card-footer">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="?page=@i&status=@ViewBag.Status&targetType=@ViewBag.TargetType">@i</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        async function updateReportStatus(reportId, status) {
+            const statusText = {
+                'reviewed': 'đánh dấu đã xem',
+                'resolved': 'đánh dấu đã xử lý',
+                'dismissed': 'bác bỏ'
+            };
+            
+            if (!confirm(`Bạn có chắc muốn ${statusText[status]} báo cáo này?`)) return;
+            
+            const formData = new FormData();
+            formData.append('reportId', reportId);
+            formData.append('status', status);
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            
+            const response = await fetch('@Url.Action("UpdateReportStatus", "Admin")', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert(result.message);
+            }
+        }
+    </script>
+    @Html.AntiForgeryToken()
+}

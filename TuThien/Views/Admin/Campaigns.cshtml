@@ -1,0 +1,269 @@
+@model List<TuThien.Models.Campaign>
+@{
+    ViewData["Title"] = "Quản lý chiến dịch";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Tìm kiếm</label>
+                <input type="text" name="search" class="form-control" placeholder="Tên chiến dịch hoặc người tạo..." value="@ViewBag.Search" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Trạng thái</label>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="@Url.Action("Campaigns", "Admin", new { search = ViewBag.Search })" class="btn @(string.IsNullOrEmpty(ViewBag.Status) ? "btn-primary" : "btn-outline-primary") btn-sm">
+                        Tất cả
+                    </a>
+                    <a href="@Url.Action("Campaigns", "Admin", new { status = "pending", search = ViewBag.Search })" class="btn @(ViewBag.Status == "pending" ? "btn-warning" : "btn-outline-warning") btn-sm">
+                        Chờ duyệt
+                        @if (ViewBag.PendingCount > 0)
+                        {
+                            <span class="badge bg-dark ms-1">@ViewBag.PendingCount</span>
+                        }
+                    </a>
+                    <a href="@Url.Action("Campaigns", "Admin", new { status = "active", search = ViewBag.Search })" class="btn @(ViewBag.Status == "active" ? "btn-success" : "btn-outline-success") btn-sm">
+                        Đang hoạt động
+                    </a>
+                    <a href="@Url.Action("Campaigns", "Admin", new { status = "draft", search = ViewBag.Search })" class="btn @(ViewBag.Status == "draft" ? "btn-secondary" : "btn-outline-secondary") btn-sm">
+                        Nháp
+                    </a>
+                    <a href="@Url.Action("Campaigns", "Admin", new { status = "closed", search = ViewBag.Search })" class="btn @(ViewBag.Status == "closed" ? "btn-dark" : "btn-outline-dark") btn-sm">
+                        Đã đóng
+                    </a>
+                    <a href="@Url.Action("Campaigns", "Admin", new { status = "rejected", search = ViewBag.Search })" class="btn @(ViewBag.Status == "rejected" ? "btn-danger" : "btn-outline-danger") btn-sm">
+                        Từ chối
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i>Tìm
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-megaphone me-2"></i>Danh sách chiến dịch
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Chiến dịch</th>
+                        <th>Người tạo</th>
+                        <th>Danh mục</th>
+                        <th class="text-end">Mục tiêu</th>
+                        <th class="text-end">Đã nhận</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày tạo</th>
+                        <th class="text-center">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                Không có chiến dịch nào
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var campaign in Model)
+                    {
+                        <tr>
+                            <td><code>@campaign.CampaignId</code></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    @if (!string.IsNullOrEmpty(campaign.ThumbnailUrl))
+                                    {
+                                        <img src="@campaign.ThumbnailUrl" alt="" class="rounded" style="width: 50px; height: 50px; object-fit: cover;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-secondary rounded d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                            <i class="bi bi-image text-white"></i>
+                                        </div>
+                                    }
+                                    <div>
+                                        <a href="@Url.Action("CampaignDetail", "Admin", new { id = campaign.CampaignId })" class="text-decoration-none fw-semibold">
+                                            @campaign.Title
+                                        </a>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>@campaign.Creator?.Username</td>
+                            <td><span class="badge bg-light text-dark">@(campaign.Category?.Name ?? "-")</span></td>
+                            <td class="text-end">@campaign.TargetAmount.ToString("N0")đ</td>
+                            <td class="text-end">
+                                @{
+                                    var progress = campaign.TargetAmount > 0 ? (campaign.CurrentAmount ?? 0) / campaign.TargetAmount * 100 : 0;
+                                }
+                                <div class="fw-semibold text-success">@((campaign.CurrentAmount ?? 0).ToString("N0"))đ</div>
+                                <div class="progress" style="height: 4px; width: 60px; margin-left: auto;">
+                                    <div class="progress-bar bg-success" style="width: @progress%"></div>
+                                </div>
+                            </td>
+                            <td>
+                                @{
+                                    var statusBadge = campaign.Status switch
+                                    {
+                                        "pending" => "badge-pending",
+                                        "active" => "badge-active",
+                                        "rejected" => "badge-rejected",
+                                        "closed" => "bg-secondary",
+                                        "draft" => "badge-draft",
+                                        _ => "bg-dark"
+                                    };
+                                    var statusText = campaign.Status switch
+                                    {
+                                        "pending" => "Chờ duyệt",
+                                        "active" => "Hoạt động",
+                                        "rejected" => "Từ chối",
+                                        "closed" => "Đã đóng",
+                                        "draft" => "Nháp",
+                                        _ => campaign.Status
+                                    };
+                                }
+                                <span class="badge @statusBadge">@statusText</span>
+                            </td>
+                            <td>
+                                <small>@campaign.CreatedAt?.ToString("dd/MM/yyyy")</small>
+                            </td>
+                            <td class="text-center">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        Hành động
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <a class="dropdown-item" href="@Url.Action("CampaignDetail", "Admin", new { id = campaign.CampaignId })">
+                                                <i class="bi bi-eye me-2"></i>Xem chi tiết
+                                            </a>
+                                        </li>
+                                        @if (campaign.Status == "pending")
+                                        {
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button class="dropdown-item text-success" onclick="approveCampaign(@campaign.CampaignId)">
+                                                    <i class="bi bi-check-circle me-2"></i>Phê duyệt
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button class="dropdown-item text-danger" onclick="rejectCampaign(@campaign.CampaignId)">
+                                                    <i class="bi bi-x-circle me-2"></i>Từ chối
+                                                </button>
+                                            </li>
+                                        }
+                                        @if (campaign.Status == "active")
+                                        {
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button class="dropdown-item text-warning" onclick="closeCampaign(@campaign.CampaignId)">
+                                                    <i class="bi bi-pause-circle me-2"></i>Đóng chiến dịch
+                                                </button>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    @if (ViewBag.TotalPages > 1)
+    {
+        <div class="card-footer">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="?page=@i&status=@ViewBag.Status&search=@ViewBag.Search">@i</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        async function approveCampaign(campaignId) {
+            if (!confirm('Bạn có chắc chắn muốn PHÊ DUYỆT chiến dịch này?')) return;
+            
+            const formData = new FormData();
+            formData.append('campaignId', campaignId);
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            
+            const response = await fetch('@Url.Action("ApproveCampaign", "Admin")', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert(result.message);
+            }
+        }
+        
+        async function rejectCampaign(campaignId) {
+            const note = prompt('Nhập lý do từ chối:');
+            if (!note) return;
+            
+            const formData = new FormData();
+            formData.append('campaignId', campaignId);
+            formData.append('note', note);
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            
+            const response = await fetch('@Url.Action("RejectCampaign", "Admin")', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert(result.message);
+            }
+        }
+        
+        async function closeCampaign(campaignId) {
+            const note = prompt('Nhập lý do đóng chiến dịch:');
+            if (!note) return;
+            
+            const formData = new FormData();
+            formData.append('campaignId', campaignId);
+            formData.append('note', note);
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            
+            const response = await fetch('@Url.Action("CloseCampaign", "Admin")', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert(result.message);
+            }
+        }
+    </script>
+    @Html.AntiForgeryToken()
+}

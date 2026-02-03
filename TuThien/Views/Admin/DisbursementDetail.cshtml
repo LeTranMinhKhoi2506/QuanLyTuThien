@@ -1,0 +1,246 @@
+@model TuThien.Models.DisbursementRequest
+@{
+    ViewData["Title"] = "Chi tiết yêu cầu giải ngân #" + Model.RequestId;
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-info-circle me-2"></i>Thông tin yêu cầu</span>
+                @{
+                    var statusBadge = Model.Status switch
+                    {
+                        "pending" => "badge-pending",
+                        "approved" => "badge-approved",
+                        "rejected" => "badge-rejected",
+                        _ => "bg-secondary"
+                    };
+                    var statusText = Model.Status switch
+                    {
+                        "pending" => "Chờ duyệt",
+                        "approved" => "Đã duyệt",
+                        "rejected" => "Từ chối",
+                        _ => Model.Status
+                    };
+                }
+                <span class="badge @statusBadge fs-6">@statusText</span>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Mã yêu cầu</dt>
+                    <dd class="col-sm-8"><code>#@Model.RequestId</code></dd>
+                    
+                    <dt class="col-sm-4">Chiến dịch</dt>
+                    <dd class="col-sm-8">
+                        <a href="@Url.Action("CampaignDetail", "Admin", new { id = Model.CampaignId })">
+                            @Model.Campaign?.Title
+                        </a>
+                    </dd>
+                    
+                    <dt class="col-sm-4">Người yêu cầu</dt>
+                    <dd class="col-sm-8">@Model.Requester?.Username</dd>
+                    
+                    <dt class="col-sm-4">Số tiền yêu cầu</dt>
+                    <dd class="col-sm-8 text-danger fw-bold fs-4">@Model.Amount.ToString("N0") VNĐ</dd>
+                    
+                    <dt class="col-sm-4">Lý do giải ngân</dt>
+                    <dd class="col-sm-8">@Model.Reason</dd>
+                    
+                    <dt class="col-sm-4">Ngày yêu cầu</dt>
+                    <dd class="col-sm-8">@Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</dd>
+                    
+                    @if (Model.Status != "pending")
+                    {
+                        <dt class="col-sm-4">Người duyệt</dt>
+                        <dd class="col-sm-8">@Model.ApprovedByNavigation?.Username</dd>
+                        
+                        <dt class="col-sm-4">Ngày duyệt</dt>
+                        <dd class="col-sm-8">@Model.ApprovedAt?.ToString("dd/MM/yyyy HH:mm")</dd>
+                        
+                        <dt class="col-sm-4">Ghi chú admin</dt>
+                        <dd class="col-sm-8">@(Model.AdminNote ?? "-")</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+        
+        @if (!string.IsNullOrEmpty(Model.ProofImages))
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-images me-2"></i>Chứng từ / Hóa đơn đính kèm
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        @foreach (var image in Model.ProofImages.Split(','))
+                        {
+                            <div class="col-md-4">
+                                <a href="@image" target="_blank">
+                                    <img src="@image" class="img-fluid rounded border" alt="Chứng từ" />
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+        
+        @if (Model.Status == "pending")
+        {
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-pencil-square me-2"></i>Xử lý yêu cầu
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Ghi chú của Admin</label>
+                        <textarea id="adminNote" class="form-control" rows="3" placeholder="Nhập ghi chú (nếu từ chối thì bắt buộc)..."></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-success btn-lg" onclick="approveDisbursement()">
+                            <i class="bi bi-check-circle me-2"></i>Phê duyệt
+                        </button>
+                        <button type="button" class="btn btn-danger btn-lg" onclick="rejectDisbursement()">
+                            <i class="bi bi-x-circle me-2"></i>Từ chối
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-megaphone me-2"></i>Thông tin chiến dịch
+            </div>
+            <div class="card-body">
+                @if (Model.Campaign != null)
+                {
+                    var plainDescription = System.Text.RegularExpressions.Regex.Replace(
+                        Model.Campaign.Description ?? "", "<[^>]*>", "");
+                    var shortDescription = plainDescription.Length > 200 
+                        ? plainDescription.Substring(0, 200) + "..." 
+                        : plainDescription;
+                    var progress = Model.Campaign.TargetAmount > 0 ? 
+                        (Model.Campaign.CurrentAmount ?? 0) / Model.Campaign.TargetAmount * 100 : 0;
+                    
+                    <h6>@Model.Campaign.Title</h6>
+                    <p class="text-muted small">@shortDescription</p>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Đã quyên góp</span>
+                            <span class="fw-bold text-success">@((Model.Campaign.CurrentAmount ?? 0).ToString("N0"))đ</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" style="width: @progress%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <small class="text-muted">Mục tiêu: @Model.Campaign.TargetAmount.ToString("N0")đ</small>
+                            <small class="text-muted">@progress.ToString("N1")%</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <a href="@Url.Action("CampaignDetail", "Admin", new { id = Model.CampaignId })" class="btn btn-outline-primary btn-sm">
+                            Xem chi tiết chiến dịch
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-person me-2"></i>Người yêu cầu
+            </div>
+            <div class="card-body">
+                @if (Model.Requester != null)
+                {
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="avatar bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; font-size: 20px;">
+                            @Model.Requester.Username[0].ToString().ToUpper()
+                        </div>
+                        <div>
+                            <div class="fw-semibold">@Model.Requester.Username</div>
+                            <small class="text-muted">@Model.Requester.Email</small>
+                        </div>
+                    </div>
+                    <dl class="row mb-0 small">
+                        <dt class="col-5">Vai trò</dt>
+                        <dd class="col-7">@Model.Requester.Role</dd>
+                        <dt class="col-5">Ngày tham gia</dt>
+                        <dd class="col-7">@Model.Requester.CreatedAt?.ToString("dd/MM/yyyy")</dd>
+                    </dl>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="@Url.Action("Disbursements", "Admin")" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Quay lại danh sách
+    </a>
+</div>
+
+@section Scripts {
+    <script>
+        async function approveDisbursement() {
+            const note = document.getElementById('adminNote').value;
+            
+            if (!confirm('Bạn có chắc chắn muốn PHÊ DUYỆT yêu cầu giải ngân này?')) return;
+            
+            const formData = new FormData();
+            formData.append('requestId', @Model.RequestId);
+            formData.append('adminNote', note);
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            
+            const response = await fetch('@Url.Action("ApproveDisbursement", "Admin")', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                alert('Phê duyệt thành công!');
+                location.href = '@Url.Action("Disbursements", "Admin")';
+            } else {
+                alert(result.message);
+            }
+        }
+        
+        async function rejectDisbursement() {
+            const note = document.getElementById('adminNote').value;
+            
+            if (!note.trim()) {
+                alert('Vui lòng nhập lý do từ chối!');
+                return;
+            }
+            
+            if (!confirm('Bạn có chắc chắn muốn TỪ CHỐI yêu cầu giải ngân này?')) return;
+            
+            const formData = new FormData();
+            formData.append('requestId', @Model.RequestId);
+            formData.append('adminNote', note);
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            
+            const response = await fetch('@Url.Action("RejectDisbursement", "Admin")', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                alert('Đã từ chối yêu cầu!');
+                location.href = '@Url.Action("Disbursements", "Admin")';
+            } else {
+                alert(result.message);
+            }
+        }
+    </script>
+    @Html.AntiForgeryToken()
+}

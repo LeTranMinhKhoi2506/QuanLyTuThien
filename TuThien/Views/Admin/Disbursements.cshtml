@@ -1,0 +1,125 @@
+@model List<TuThien.Models.DisbursementRequest>
+@{
+    ViewData["Title"] = "Phê duyệt giải ngân";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="@Url.Action("Disbursements", "Admin")" class="btn @(string.IsNullOrEmpty(ViewBag.Status) ? "btn-primary" : "btn-outline-primary")">
+                Tất cả
+            </a>
+            <a href="@Url.Action("Disbursements", "Admin", new { status = "pending" })" class="btn @(ViewBag.Status == "pending" ? "btn-warning" : "btn-outline-warning")">
+                <i class="bi bi-clock me-1"></i>Chờ duyệt
+                @if (ViewBag.PendingCount > 0)
+                {
+                    <span class="badge bg-dark ms-1">@ViewBag.PendingCount</span>
+                }
+            </a>
+            <a href="@Url.Action("Disbursements", "Admin", new { status = "approved" })" class="btn @(ViewBag.Status == "approved" ? "btn-success" : "btn-outline-success")">
+                <i class="bi bi-check-circle me-1"></i>Đã duyệt
+            </a>
+            <a href="@Url.Action("Disbursements", "Admin", new { status = "rejected" })" class="btn @(ViewBag.Status == "rejected" ? "btn-danger" : "btn-outline-danger")">
+                <i class="bi bi-x-circle me-1"></i>Từ chối
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-wallet2 me-2"></i>Danh sách yêu cầu giải ngân
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Chiến dịch</th>
+                        <th>Người yêu cầu</th>
+                        <th class="text-end">Số tiền</th>
+                        <th>Lý do</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày yêu cầu</th>
+                        <th class="text-center">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                Không có yêu cầu giải ngân nào
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td><code>#@item.RequestId</code></td>
+                            <td>
+                                <a href="@Url.Action("CampaignDetail", "Admin", new { id = item.CampaignId })" class="text-decoration-none">
+                                    @item.Campaign?.Title
+                                </a>
+                            </td>
+                            <td>@item.Requester?.Username</td>
+                            <td class="text-end fw-semibold text-danger">@item.Amount.ToString("N0")đ</td>
+                            <td>
+                                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="@item.Reason">
+                                    @item.Reason
+                                </span>
+                            </td>
+                            <td>
+                                @{
+                                    var statusBadge = item.Status switch
+                                    {
+                                        "pending" => "badge-pending",
+                                        "approved" => "badge-approved",
+                                        "rejected" => "badge-rejected",
+                                        _ => "bg-secondary"
+                                    };
+                                    var statusText = item.Status switch
+                                    {
+                                        "pending" => "Chờ duyệt",
+                                        "approved" => "Đã duyệt",
+                                        "rejected" => "Từ chối",
+                                        _ => item.Status
+                                    };
+                                }
+                                <span class="badge @statusBadge">@statusText</span>
+                            </td>
+                            <td>
+                                <small>@item.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
+                            </td>
+                            <td class="text-center">
+                                <a href="@Url.Action("DisbursementDetail", "Admin", new { id = item.RequestId })" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> Chi tiết
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    @if (ViewBag.TotalPages > 1)
+    {
+        <div class="card-footer">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="?page=@i&status=@ViewBag.Status">@i</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        </div>
+    }
+</div>

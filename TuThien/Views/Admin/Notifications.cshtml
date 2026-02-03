@@ -1,0 +1,110 @@
+@model List<TuThien.Models.Notification>
+@{
+    ViewData["Title"] = "Thông báo";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-bell me-2"></i>Tất cả thông báo</span>
+        <button class="btn btn-sm btn-outline-primary" onclick="markAllAsRead()">
+            <i class="bi bi-check-all me-1"></i>Đánh dấu tất cả đã đọc
+        </button>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.Any())
+        {
+            <div class="list-group list-group-flush">
+                @foreach (var notification in Model)
+                {
+                    var iconClass = notification.Type switch
+                    {
+                        "campaign" => "megaphone",
+                        "donation" => "cash-coin",
+                        "disbursement" => "credit-card",
+                        "report" => "flag",
+                        _ => "bell"
+                    };
+                    var bgClass = notification.Type switch
+                    {
+                        "campaign" => "bg-primary bg-opacity-10 text-primary",
+                        "donation" => "bg-success bg-opacity-10 text-success",
+                        "disbursement" => "bg-warning bg-opacity-10 text-warning",
+                        "report" => "bg-danger bg-opacity-10 text-danger",
+                        _ => "bg-secondary bg-opacity-10 text-secondary"
+                    };
+                    var isUnread = notification.IsRead != true;
+                    
+                    <div class="list-group-item d-flex align-items-start gap-3 @(isUnread ? "bg-light" : "")" 
+                         style="@(isUnread ? "border-left: 3px solid #0d6efd;" : "")">
+                        <div class="rounded-circle p-2 @bgClass" style="min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-@iconClass fs-5"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h6 class="mb-1 @(isUnread ? "fw-bold" : "")">@notification.Title</h6>
+                                <small class="text-muted">@GetTimeAgo(notification.CreatedAt)</small>
+                            </div>
+                            <p class="mb-1 text-muted">@notification.Message</p>
+                            @if (isUnread)
+                            {
+                                <span class="badge bg-primary">Chưa đọc</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-bell-slash fs-1 d-block mb-3"></i>
+                <p>Không có thông báo nào</p>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="@Url.Action("Index", "Admin")" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Quay lại Dashboard
+    </a>
+</div>
+
+@functions {
+    string GetTimeAgo(DateTime? dateTime)
+    {
+        if (!dateTime.HasValue) return "";
+
+        var span = DateTime.Now - dateTime.Value;
+
+        if (span.TotalMinutes < 1) return "Vừa xong";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes} phút trước";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours} giờ trước";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays} ngày trước";
+        if (span.TotalDays < 30) return $"{(int)(span.TotalDays / 7)} tuần trước";
+        return dateTime.Value.ToString("dd/MM/yyyy HH:mm");
+    }
+}
+
+@section Scripts {
+    <script>
+        async function markAllAsRead() {
+            const confirmed = await confirmAction('Đánh dấu tất cả thông báo là đã đọc?', {
+                title: 'Xác nhận',
+                type: 'info',
+                confirmText: 'Đồng ý'
+            });
+            
+            if (!confirmed) return;
+            
+            try {
+                await fetch('@Url.Action("MarkAllNotificationsRead", "Admin")', { method: 'POST' });
+                showToast('Thành công', 'Đã đánh dấu tất cả thông báo là đã đọc', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } catch (error) {
+                showToast('Lỗi', 'Có lỗi xảy ra', 'error');
+            }
+        }
+    </script>
+}

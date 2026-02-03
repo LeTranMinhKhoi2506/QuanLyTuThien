@@ -2,7 +2,9 @@
     Layout = null;
     var userId = Context.Session.GetInt32("UserId");
     var username = Context.Session.GetString("Username");
+    var role = Context.Session.GetString("Role");
     var isLoggedIn = userId.HasValue;
+    var isAdmin = role == "admin";
 }
 <header class="site-header bg-white shadow-sm">
     <div class="container-fluid">
@@ -50,6 +52,13 @@
                                 <i class="bi bi-person-circle me-1"></i>@username
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                                @if (isAdmin)
+                                {
+                                    <li><a class="dropdown-item text-primary fw-semibold" href="@Url.Action("Index", "Admin")">
+                                        <i class="bi bi-speedometer2 me-2"></i>Admin Panel
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                }
                                 <li><a class="dropdown-item" href="@Url.Action("Profile", "Account")">
                                     <i class="bi bi-person me-2"></i>Tài khoản của tôi
                                 </a></li>

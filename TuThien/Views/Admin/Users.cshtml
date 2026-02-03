@@ -1,0 +1,210 @@
+@model List<TuThien.Models.User>
+@{
+    ViewData["Title"] = "Quản lý người dùng";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Tìm kiếm</label>
+                <input type="text" name="search" class="form-control" placeholder="Username hoặc Email..." value="@ViewBag.Search" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Vai trò</label>
+                <select name="role" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="admin" selected="@(ViewBag.Role == "admin")">Admin</option>
+                    <option value="charity_org" selected="@(ViewBag.Role == "charity_org")">Tổ chức từ thiện</option>
+                    <option value="user" selected="@(ViewBag.Role == "user")">Người dùng</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Trạng thái</label>
+                <select name="status" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="active" selected="@(ViewBag.Status == "active")">Hoạt động</option>
+                    <option value="locked" selected="@(ViewBag.Status == "locked")">Đã khóa</option>
+                    <option value="pending" selected="@(ViewBag.Status == "pending")">Chờ xác thực</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i>Lọc
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-people me-2"></i>Danh sách người dùng</span>
+        <span class="badge bg-secondary">Tổng: @Model.Count</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Thông tin</th>
+                        <th>Liên hệ</th>
+                        <th>Vai trò</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày tạo</th>
+                        <th class="text-center">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model)
+                    {
+                        <tr>
+                            <td><code>@user.UserId</code></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        @user.Username[0].ToString().ToUpper()
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold">@user.Username</div>
+                                        <small class="text-muted">@user.UserProfile?.FullName</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div>@user.Email</div>
+                                <small class="text-muted">@user.PhoneNumber</small>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm role-select" data-user-id="@user.UserId" style="width: 140px;">
+                                    <option value="user" selected="@(user.Role == "user")">Người dùng</option>
+                                    <option value="charity_org" selected="@(user.Role == "charity_org")">Tổ chức từ thiện</option>
+                                    <option value="admin" selected="@(user.Role == "admin")">Admin</option>
+                                </select>
+                            </td>
+                            <td>
+                                @{
+                                    var statusClass = user.Status switch
+                                    {
+                                        "active" => "badge-active",
+                                        "locked" => "badge-locked",
+                                        _ => "badge-pending"
+                                    };
+                                    var statusText = user.Status switch
+                                    {
+                                        "active" => "Hoạt động",
+                                        "locked" => "Đã khóa",
+                                        _ => "Chờ xác thực"
+                                    };
+                                }
+                                <span class="badge @statusClass">@statusText</span>
+                            </td>
+                            <td>
+                                <small>@user.CreatedAt?.ToString("dd/MM/yyyy")</small>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    @if (user.Status == "active")
+                                    {
+                                        <button type="button" class="btn btn-outline-danger btn-status" 
+                                                data-user-id="@user.UserId" data-status="locked" title="Khóa tài khoản">
+                                            <i class="bi bi-lock"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-outline-success btn-status" 
+                                                data-user-id="@user.UserId" data-status="active" title="Mở khóa">
+                                            <i class="bi bi-unlock"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    @if (ViewBag.TotalPages > 1)
+    {
+        <div class="card-footer">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="?page=@i&search=@ViewBag.Search&role=@ViewBag.Role&status=@ViewBag.Status">@i</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Update user status
+        document.querySelectorAll('.btn-status').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const userId = this.dataset.userId;
+                const status = this.dataset.status;
+                
+                if (!confirm(`Bạn có chắc muốn ${status === 'locked' ? 'khóa' : 'mở khóa'} tài khoản này?`)) return;
+                
+                const formData = new FormData();
+                formData.append('userId', userId);
+                formData.append('status', status);
+                formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+                
+                const response = await fetch('@Url.Action("UpdateUserStatus", "Admin")', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert(result.message);
+                }
+            });
+        });
+        
+        // Update user role
+        document.querySelectorAll('.role-select').forEach(select => {
+            select.addEventListener('change', async function() {
+                const userId = this.dataset.userId;
+                const role = this.value;
+                
+                if (!confirm('Bạn có chắc muốn thay đổi vai trò của người dùng này?')) {
+                    location.reload();
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('userId', userId);
+                formData.append('role', role);
+                formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+                
+                const response = await fetch('@Url.Action("UpdateUserRole", "Admin")', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showToast(result.message, 'success');
+                } else {
+                    alert(result.message);
+                    location.reload();
+                }
+            });
+        });
+    </script>
+    @Html.AntiForgeryToken()
+}

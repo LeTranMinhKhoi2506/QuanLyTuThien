@@ -1,0 +1,480 @@
+@model TuThien.Models.Campaign
+@{
+    ViewData["Title"] = "Chi tiết chiến dịch";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-megaphone me-2"></i>Thông tin chiến dịch</span>
+                @{
+                    var statusBadge = Model.Status switch
+                    {
+                        "pending" => "badge-pending",
+                        "active" => "badge-active",
+                        "rejected" => "badge-rejected",
+                        "closed" => "bg-secondary",
+                        "draft" => "badge-draft",
+                        _ => "bg-dark"
+                    };
+                    var statusText = Model.Status switch
+                    {
+                        "pending" => "Chờ duyệt",
+                        "active" => "Đang hoạt động",
+                        "rejected" => "Từ chối",
+                        "closed" => "Đã đóng",
+                        "draft" => "Nháp",
+                        _ => Model.Status
+                    };
+                }
+                <span class="badge @statusBadge fs-6">@statusText</span>
+            </div>
+            <div class="card-body">
+                @if (!string.IsNullOrEmpty(Model.ThumbnailUrl))
+                {
+                    <img src="@Model.ThumbnailUrl" alt="@Model.Title" class="img-fluid rounded mb-4" style="max-height: 300px; width: 100%; object-fit: cover;" />
+                }
+                
+                <h3 class="mb-3">@Model.Title</h3>
+                
+                <dl class="row">
+                    <dt class="col-sm-3">Mã chiến dịch</dt>
+                    <dd class="col-sm-9"><code>#@Model.CampaignId</code></dd>
+                    
+                    <dt class="col-sm-3">Danh mục</dt>
+                    <dd class="col-sm-9">@(Model.Category?.Name ?? "-")</dd>
+                    
+                    <dt class="col-sm-3">Mục tiêu</dt>
+                    <dd class="col-sm-9 text-primary fw-bold">@Model.TargetAmount.ToString("N0") VNĐ</dd>
+                    
+                    <dt class="col-sm-3">Đã quyên góp</dt>
+                    <dd class="col-sm-9 text-success fw-bold">@((Model.CurrentAmount ?? 0).ToString("N0")) VNĐ</dd>
+                    
+                    <dt class="col-sm-3">Thời gian</dt>
+                    <dd class="col-sm-9">
+                        @(Model.StartDate?.ToString("dd/MM/yyyy") ?? "-") đến @(Model.EndDate?.ToString("dd/MM/yyyy") ?? "-")
+                    </dd>
+                    
+                    <dt class="col-sm-3">Xử lý vượt mục tiêu</dt>
+                    <dd class="col-sm-9">
+                        @{
+                            var excessOption = Model.ExcessFundOption switch
+                            {
+                                "emergency_fund" => "Chuyển vào quỹ dự phòng khẩn cấp",
+                                "next_case" => "Chuyển cho hoàn cảnh khó khăn tiếp theo",
+                                _ => Model.ExcessFundOption
+                            };
+                        }
+                        @excessOption
+                    </dd>
+                    
+                    <dt class="col-sm-3">Ngày tạo</dt>
+                    <dd class="col-sm-9">@Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</dd>
+                </dl>
+                
+                <hr>
+                
+                <h5>Mô tả chiến dịch</h5>
+                <div class="border rounded p-3 bg-light">
+                    @Html.Raw(Model.Description?.Replace("\n", "<br>"))
+                </div>
+            </div>
+        </div>
+        
+        @if (Model.CampaignMilestones?.Any() == true)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-flag me-2"></i>Các mốc gây quỹ (Milestones)
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tiêu đề</th>
+                                <th class="text-end">Số tiền</th>
+                                <th>Thời hạn</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var milestone in Model.CampaignMilestones.OrderBy(m => m.AmountNeeded))
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@milestone.Title</td>
+                                    <td class="text-end">@milestone.AmountNeeded.ToString("N0")đ</td>
+                                    <td>@milestone.Deadline?.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        @{
+                                            var milestoneStatusBadge = milestone.Status switch
+                                            {
+                                                "pending" => "bg-warning text-dark",
+                                                "in_progress" => "bg-info",
+                                                "completed" => "bg-success",
+                                                _ => "bg-secondary"
+                                            };
+                                            var milestoneStatusText = milestone.Status switch
+                                            {
+                                                "pending" => "Chờ xử lý",
+                                                "in_progress" => "Đang thực hiện",
+                                                "completed" => "Hoàn thành",
+                                                _ => milestone.Status
+                                            };
+                                        }
+                                        <span class="badge @milestoneStatusBadge">@milestoneStatusText</span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+        
+        @if (Model.CampaignDocuments?.Any() == true)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-file-earmark me-2"></i>Hồ sơ pháp lý / Tài liệu đính kèm
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        @foreach (var doc in Model.CampaignDocuments)
+                        {
+                            <div class="col-md-4">
+                                <div class="border rounded p-3 text-center">
+                                    @if (doc.FileType == "image")
+                                    {
+                                        <a href="@doc.FileUrl" target="_blank">
+                                            <img src="@doc.FileUrl" class="img-fluid rounded mb-2" style="max-height: 150px;" />
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-file-pdf fs-1 text-danger"></i>
+                                    }
+                                    <div class="small text-muted">@doc.Description</div>
+                                    <a href="@doc.FileUrl" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                        <i class="bi bi-download me-1"></i>Tải xuống
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+        
+        @if (Model.DisbursementRequests?.Any() == true)
+        {
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-credit-card me-2"></i>Yêu cầu giải ngân</span>
+                    <span class="badge bg-primary">@Model.DisbursementRequests.Count yêu cầu</span>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Mã YC</th>
+                                <th>Người yêu cầu</th>
+                                <th class="text-end">Số tiền</th>
+                                <th>Ngày tạo</th>
+                                <th>Trạng thái</th>
+                                <th class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var disbursement in Model.DisbursementRequests.OrderByDescending(d => d.CreatedAt))
+                            {
+                                var disbStatusBadge = disbursement.Status switch
+                                {
+                                    "pending" => "badge-pending",
+                                    "approved" => "badge-approved",
+                                    "rejected" => "badge-rejected",
+                                    _ => "bg-secondary"
+                                };
+                                var disbStatusText = disbursement.Status switch
+                                {
+                                    "pending" => "Chờ duyệt",
+                                    "approved" => "Đã duyệt",
+                                    "rejected" => "Từ chối",
+                                    _ => disbursement.Status
+                                };
+                                <tr>
+                                    <td><code>#@disbursement.RequestId</code></td>
+                                    <td>@(disbursement.Requester?.Username ?? "-")</td>
+                                    <td class="text-end text-danger fw-semibold">@disbursement.Amount.ToString("N0")đ</td>
+                                    <td>@disbursement.CreatedAt?.ToString("dd/MM/yyyy")</td>
+                                    <td><span class="badge @disbStatusBadge">@disbStatusText</span></td>
+                                    <td class="text-center">
+                                        <a href="@Url.Action("DisbursementDetail", "Admin", new { id = disbursement.RequestId })" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i> Chi tiết
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+        
+        @if (Model.Status == "pending")
+        {
+            <div class="card">
+                <div class="card-header bg-warning bg-opacity-25">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Phê duyệt chiến dịch
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Checklist kiểm duyệt:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Kiểm duyệt hồ sơ pháp lý/chứng minh hoàn cảnh</li>
+                            <li>Xác thực thông tin người tạo chiến dịch</li>
+                            <li>Kiểm tra mô tả chiến dịch có phù hợp</li>
+                            <li>Xác nhận mục tiêu quyên góp hợp lý</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Ghi chú (nếu từ chối)</label>
+                        <textarea id="adminNote" class="form-control" rows="3" placeholder="Nhập lý do từ chối nếu không phê duyệt..."></textarea>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-success btn-lg" onclick="approveCampaign()">
+                            <i class="bi bi-check-circle me-2"></i>Phê duyệt
+                        </button>
+                        <button type="button" class="btn btn-danger btn-lg" onclick="rejectCampaign()">
+                            <i class="bi bi-x-circle me-2"></i>Từ chối
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-person me-2"></i>Người tạo chiến dịch
+            </div>
+            <div class="card-body">
+                @if (Model.Creator != null)
+                {
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="avatar bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 24px;">
+                            @Model.Creator.Username[0].ToString().ToUpper()
+                        </div>
+                        <div>
+                            <div class="fw-semibold fs-5">@Model.Creator.Username</div>
+                            <small class="text-muted">@Model.Creator.Email</small>
+                        </div>
+                    </div>
+                    
+                    <dl class="row mb-0 small">
+                        <dt class="col-5">Họ tên</dt>
+                        <dd class="col-7">@(Model.Creator.UserProfile?.FullName ?? "-")</dd>
+                        
+                        <dt class="col-5">SĐT</dt>
+                        <dd class="col-7">@(Model.Creator.PhoneNumber ?? "-")</dd>
+                        
+                        <dt class="col-5">Vai trò</dt>
+                        <dd class="col-7">
+                            @{
+                                var roleBadge = Model.Creator.Role switch
+                                {
+                                    "admin" => "bg-danger",
+                                    "charity_org" => "bg-primary",
+                                    _ => "bg-secondary"
+                                };
+                                var roleText = Model.Creator.Role switch
+                                {
+                                    "admin" => "Admin",
+                                    "charity_org" => "Tổ chức từ thiện",
+                                    _ => "Người dùng"
+                                };
+                            }
+                            <span class="badge @roleBadge">@roleText</span>
+                        </dd>
+                        
+                        <dt class="col-5">Ngày tham gia</dt>
+                        <dd class="col-7">@Model.Creator.CreatedAt?.ToString("dd/MM/yyyy")</dd>
+                    </dl>
+                }
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-graph-up me-2"></i>Tiến độ quyên góp
+            </div>
+            <div class="card-body">
+                @{
+                    var progress = Model.TargetAmount > 0 ? (Model.CurrentAmount ?? 0) / Model.TargetAmount * 100 : 0;
+                }
+                <div class="text-center mb-3">
+                    <div class="display-6 text-success fw-bold">@progress.ToString("N1")%</div>
+                    <small class="text-muted">hoàn thành mục tiêu</small>
+                </div>
+                
+                <div class="progress mb-3" style="height: 12px;">
+                    <div class="progress-bar bg-success" style="width: @progress%"></div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="text-success fw-bold">@((Model.CurrentAmount ?? 0).ToString("N0"))đ</div>
+                        <small class="text-muted">Đã nhận</small>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold">@Model.TargetAmount.ToString("N0")đ</div>
+                        <small class="text-muted">Mục tiêu</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        @if (Model.Status == "active")
+        {
+            <div class="card">
+                <div class="card-body">
+                    <button type="button" class="btn btn-outline-warning w-100" onclick="closeCampaign()">
+                        <i class="bi bi-pause-circle me-2"></i>Đóng chiến dịch
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="@Url.Action("Campaigns", "Admin")" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Quay lại danh sách
+    </a>
+</div>
+
+@section Scripts {
+<script>
+    async function approveCampaign() {
+        const confirmed = await confirmApprove('chiến dịch này');
+        if (!confirmed) return;
+            
+        const note = document.getElementById('adminNote')?.value || '';
+            
+        const formData = new FormData();
+        formData.append('campaignId', @Model.CampaignId);
+        formData.append('note', note);
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            
+        try {
+            const response = await fetch('@Url.Action("ApproveCampaign", "Admin")', {
+                method: 'POST',
+                body: formData
+            });
+                
+            const result = await response.json();
+            if (result.success) {
+                showToast('Thành công', 'Phê duyệt chiến dịch thành công!', 'success');
+                setTimeout(() => {
+                    location.href = '@Url.Action("Campaigns", "Admin")';
+                }, 1500);
+            } else {
+                showToast('Lỗi', result.message, 'error');
+            }
+        } catch (error) {
+            showToast('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
+        }
+    }
+        
+    async function rejectCampaign() {
+        const note = document.getElementById('adminNote')?.value;
+            
+        if (!note?.trim()) {
+            showToast('Cảnh báo', 'Vui lòng nhập lý do từ chối!', 'warning');
+            document.getElementById('adminNote').focus();
+            return;
+        }
+            
+        const confirmed = await confirmReject('chiến dịch này');
+        if (!confirmed) return;
+            
+        const formData = new FormData();
+        formData.append('campaignId', @Model.CampaignId);
+        formData.append('note', note);
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            
+        try {
+            const response = await fetch('@Url.Action("RejectCampaign", "Admin")', {
+                method: 'POST',
+                body: formData
+            });
+                
+            const result = await response.json();
+            if (result.success) {
+                showToast('Hoàn tất', 'Đã từ chối chiến dịch!', 'info');
+                setTimeout(() => {
+                    location.href = '@Url.Action("Campaigns", "Admin")';
+                }, 1500);
+            } else {
+                showToast('Lỗi', result.message, 'error');
+            }
+        } catch (error) {
+            showToast('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
+        }
+    }
+        
+    async function closeCampaign() {
+        const confirmed = await showConfirm({
+            title: 'Đóng chiến dịch',
+            message: 'Bạn có chắc chắn muốn đóng chiến dịch này? Chiến dịch sẽ không còn nhận quyên góp.',
+            type: 'warning',
+            confirmText: 'Đóng chiến dịch',
+            confirmClass: 'btn-warning'
+        });
+            
+        if (!confirmed) return;
+            
+        // Show input modal for reason
+        const note = await showInputModal('Lý do đóng chiến dịch', 'Nhập lý do đóng chiến dịch...');
+        if (!note) return;
+            
+        const formData = new FormData();
+        formData.append('campaignId', @Model.CampaignId);
+        formData.append('note', note);
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            
+        try {
+            const response = await fetch('@Url.Action("CloseCampaign", "Admin")', {
+                method: 'POST',
+                body: formData
+            });
+                
+            const result = await response.json();
+            if (result.success) {
+                showToast('Thành công', 'Đã đóng chiến dịch!', 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showToast('Lỗi', result.message, 'error');
+            }
+        } catch (error) {
+            showToast('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
+        }
+    }
+        
+    // Simple input modal function
+    function showInputModal(title, placeholder) {
+        return new Promise((resolve) => {
+            const result = prompt(title + '\n' + placeholder);
+            resolve(result);
+        });
+    }
+    </script>
+    @Html.AntiForgeryToken()
+}
