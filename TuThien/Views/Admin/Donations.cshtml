@@ -1,0 +1,187 @@
+@model List<TuThien.Models.Donation>
+@{
+    ViewData["Title"] = "Lịch sử quyên góp";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+                <div>
+                    <div class="stat-value">@(((decimal)ViewBag.TotalAmount).ToString("N0"))đ</div>
+                    <div class="stat-label">Tổng tiền (theo bộ lọc)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-receipt"></i>
+                </div>
+                <div>
+                    <div class="stat-value">@ViewBag.TotalCount</div>
+                    <div class="stat-label">Số lượt quyên góp</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <a href="@Url.Action("ExportDonations", "Admin", new { fromDate = ViewBag.FromDate, toDate = ViewBag.ToDate, format = "csv" })" 
+           class="stat-card text-decoration-none d-block">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon bg-info bg-opacity-10 text-info">
+                    <i class="bi bi-download"></i>
+                </div>
+                <div>
+                    <div class="stat-value"><i class="bi bi-file-earmark-spreadsheet"></i></div>
+                    <div class="stat-label">Xuất CSV</div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Tìm kiếm</label>
+                <input type="text" name="search" class="form-control" placeholder="Tên người dùng, chiến dịch, mã GD..." value="@ViewBag.Search" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Phương thức</label>
+                <select name="paymentMethod" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="momo" selected="@(ViewBag.PaymentMethod == "momo")">MoMo</option>
+                    <option value="bank_transfer" selected="@(ViewBag.PaymentMethod == "bank_transfer")">Chuyển khoản</option>
+                    <option value="vnpay" selected="@(ViewBag.PaymentMethod == "vnpay")">VNPay</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Từ ngày</label>
+                <input type="date" name="fromDate" class="form-control" value="@(((DateTime?)ViewBag.FromDate)?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Đến ngày</label>
+                <input type="date" name="toDate" class="form-control" value="@(((DateTime?)ViewBag.ToDate)?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search me-1"></i>Lọc
+                </button>
+                <a href="@Url.Action("Donations", "Admin")" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-clock-history me-2"></i>Danh sách quyên góp
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã GD</th>
+                        <th>Người quyên góp</th>
+                        <th>Chiến dịch</th>
+                        <th class="text-end">Số tiền</th>
+                        <th>Phương thức</th>
+                        <th>Trạng thái</th>
+                        <th>Thời gian</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var donation in Model)
+                    {
+                        <tr>
+                            <td><code>@(donation.TransactionCode ?? "-")</code></td>
+                            <td>
+                                @if (donation.IsAnonymous == true)
+                                {
+                                    <span class="text-muted"><i class="bi bi-incognito me-1"></i>Ẩn danh</span>
+                                }
+                                else
+                                {
+                                    <span>@(donation.User?.Username ?? "N/A")</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="@donation.Campaign?.Title">
+                                    @donation.Campaign?.Title
+                                </span>
+                            </td>
+                            <td class="text-end fw-semibold text-success">@donation.Amount.ToString("N0")đ</td>
+                            <td>
+                                @{
+                                    var methodBadge = donation.PaymentMethod switch
+                                    {
+                                        "momo" => "bg-danger",
+                                        "vnpay" => "bg-info",
+                                        _ => "bg-primary"
+                                    };
+                                    var methodText = donation.PaymentMethod switch
+                                    {
+                                        "momo" => "MoMo",
+                                        "vnpay" => "VNPay",
+                                        "bank_transfer" => "Chuyển khoản",
+                                        _ => donation.PaymentMethod
+                                    };
+                                }
+                                <span class="badge @methodBadge">@methodText</span>
+                            </td>
+                            <td>
+                                @{
+                                    var statusBadge = donation.PaymentStatus switch
+                                    {
+                                        "completed" => "bg-success",
+                                        "pending" => "bg-warning text-dark",
+                                        "failed" => "bg-danger",
+                                        _ => "bg-secondary"
+                                    };
+                                    var statusText = donation.PaymentStatus switch
+                                    {
+                                        "completed" => "Thành công",
+                                        "pending" => "Đang xử lý",
+                                        "failed" => "Thất bại",
+                                        _ => donation.PaymentStatus
+                                    };
+                                }
+                                <span class="badge @statusBadge">@statusText</span>
+                            </td>
+                            <td>
+                                <small>@donation.DonatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    @if (ViewBag.TotalPages > 1)
+    {
+        <div class="card-footer">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="?page=@i&search=@ViewBag.Search&paymentMethod=@ViewBag.PaymentMethod&fromDate=@(((DateTime?)ViewBag.FromDate)?.ToString("yyyy-MM-dd"))&toDate=@(((DateTime?)ViewBag.ToDate)?.ToString("yyyy-MM-dd"))">@i</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        </div>
+    }
+</div>

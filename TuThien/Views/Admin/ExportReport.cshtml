@@ -1,0 +1,192 @@
+@{
+    ViewData["Title"] = "Xuất báo cáo sao kê";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-file-earmark-spreadsheet me-2"></i>Xuất báo cáo sao kê quyên góp
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Xuất báo cáo sao kê chi tiết các giao dịch quyên góp theo định dạng giống sao kê ngân hàng. 
+                    Báo cáo sẽ bao gồm tất cả thông tin về người quyên góp, chiến dịch, số tiền và thời gian.
+                </p>
+                
+                <form id="exportForm" class="mt-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Từ ngày</label>
+                            <input type="date" id="fromDate" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Đến ngày</label>
+                            <input type="date" id="toDate" class="form-control" />
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label class="form-label">Định dạng xuất</label>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="card border-primary cursor-pointer format-card" data-format="csv">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-file-earmark-spreadsheet fs-1 text-success"></i>
+                                        <h5 class="mt-2">CSV (Excel)</h5>
+                                        <p class="small text-muted mb-0">Định dạng bảng tính, dễ dàng xử lý với Excel</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-secondary cursor-pointer format-card disabled" data-format="pdf">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-file-earmark-pdf fs-1 text-danger"></i>
+                                        <h5 class="mt-2">PDF</h5>
+                                        <p class="small text-muted mb-0">Sắp ra mắt</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="format" value="csv" />
+                    
+                    <hr>
+                    
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="bi bi-download me-2"></i>Tải xuống báo cáo
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-clock-history me-2"></i>Báo cáo nhanh
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <a href="@Url.Action("ExportDonations", "Admin", new { format = "csv" })" class="btn btn-outline-primary w-100 py-3">
+                            <i class="bi bi-calendar-check d-block fs-3 mb-2"></i>
+                            Toàn bộ
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        @{
+                            var thisMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+                            var nextMonth = thisMonth.AddMonths(1).AddDays(-1);
+                        }
+                        <a href="@Url.Action("ExportDonations", "Admin", new { fromDate = thisMonth.ToString("yyyy-MM-dd"), toDate = nextMonth.ToString("yyyy-MM-dd"), format = "csv" })" class="btn btn-outline-primary w-100 py-3">
+                            <i class="bi bi-calendar-month d-block fs-3 mb-2"></i>
+                            Tháng này
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        @{
+                            var lastMonth = DateTime.Now.AddMonths(-1);
+                            var lastMonthStart = new DateTime(lastMonth.Year, lastMonth.Month, 1);
+                            var lastMonthEnd = lastMonthStart.AddMonths(1).AddDays(-1);
+                        }
+                        <a href="@Url.Action("ExportDonations", "Admin", new { fromDate = lastMonthStart.ToString("yyyy-MM-dd"), toDate = lastMonthEnd.ToString("yyyy-MM-dd"), format = "csv" })" class="btn btn-outline-primary w-100 py-3">
+                            <i class="bi bi-calendar-minus d-block fs-3 mb-2"></i>
+                            Tháng trước
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>Thông tin
+            </div>
+            <div class="card-body">
+                <h6>Báo cáo sao kê bao gồm:</h6>
+                <ul class="small">
+                    <li>STT</li>
+                    <li>Mã giao dịch</li>
+                    <li>Ngày giờ giao dịch</li>
+                    <li>Tên người quyên góp</li>
+                    <li>Tên chiến dịch</li>
+                    <li>Số tiền quyên góp</li>
+                    <li>Phương thức thanh toán</li>
+                    <li>Trạng thái giao dịch</li>
+                </ul>
+                
+                <div class="alert alert-info small mb-0">
+                    <i class="bi bi-shield-check me-1"></i>
+                    Báo cáo được định dạng giống sao kê ngân hàng để đảm bảo tính minh bạch và chuyên nghiệp.
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-graph-up me-2"></i>Thống kê
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">
+                    Xem thống kê chi tiết quyên góp tại trang Dashboard hoặc mục Lịch sử quyên góp.
+                </p>
+                <a href="@Url.Action("Index", "Admin")" class="btn btn-outline-primary btn-sm w-100">
+                    <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .format-card {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .format-card:hover:not(.disabled) {
+        border-color: #0d6efd !important;
+        transform: translateY(-2px);
+    }
+    .format-card.selected {
+        border-color: #0d6efd !important;
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    .format-card.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        // Format card selection
+        document.querySelectorAll('.format-card:not(.disabled)').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+                document.getElementById('format').value = this.dataset.format;
+            });
+        });
+        
+        // Set default selection
+        document.querySelector('.format-card[data-format="csv"]').classList.add('selected');
+        
+        // Form submit
+        document.getElementById('exportForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            const format = document.getElementById('format').value;
+            
+            let url = '@Url.Action("ExportDonations", "Admin")' + '?format=' + format;
+            if (fromDate) url += '&fromDate=' + fromDate;
+            if (toDate) url += '&toDate=' + toDate;
+            
+            window.location.href = url;
+        });
+    </script>
+}

@@ -38,7 +38,7 @@ namespace TuThien.Controllers
 
             try
             {
-                // T�m user theo username ho?c email
+                // Tìm user theo username hoặc email
                 var user = await _context.Users
                     .FirstOrDefaultAsync(u => 
                         u.Username == model.UsernameOrEmail || 
@@ -46,25 +46,53 @@ namespace TuThien.Controllers
 
                 if (user == null)
                 {
-                    ModelState.AddModelError(string.Empty, "T�n ??ng nh?p ho?c m?t kh?u kh�ng ?�ng");
+                    ModelState.AddModelError(string.Empty, "Tên đăng nhập hoặc mật khẩu không đúng");
                     return View(model);
                 }
 
-                // Ki?m tra tr?ng th�i t�i kho?n
+                // Kiểm tra trạng thái tài khoản
                 if (user.Status == "locked")
                 {
-                    ModelState.AddModelError(string.Empty, "T�i kho?n ?� b? kh�a. Vui l�ng li�n h? qu?n tr? vi�n.");
+                    ModelState.AddModelError(string.Empty, "Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.");
                     return View(model);
                 }
 
-                // Verify password v?i BCrypt
-                if (!BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash))
+                // Kiểm tra password - hỗ trợ cả password chưa hash và đã hash
+                bool isPasswordValid = false;
+                bool needsPasswordUpgrade = false;
+
+                // Kiểm tra nếu password trong DB là BCrypt hash (bắt đầu bằng $2)
+                if (user.PasswordHash != null && user.PasswordHash.StartsWith("$2"))
                 {
-                    ModelState.AddModelError(string.Empty, "T�n ??ng nh?p ho?c m?t kh?u kh�ng ?�ng");
+                    // Password đã được hash, verify bằng BCrypt
+                    isPasswordValid = BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash);
+                }
+                else
+                {
+                    // Password chưa được hash (plain text), so sánh trực tiếp
+                    isPasswordValid = user.PasswordHash == model.Password;
+                    if (isPasswordValid)
+                    {
+                        needsPasswordUpgrade = true;
+                    }
+                }
+
+                if (!isPasswordValid)
+                {
+                    ModelState.AddModelError(string.Empty, "Tên đăng nhập hoặc mật khẩu không đúng");
                     return View(model);
                 }
 
-                // ??ng nh?p th�nh c�ng - L?u th�ng tin v�o session
+                // Nếu password chưa được hash, tự động hash và cập nhật
+                if (needsPasswordUpgrade)
+                {
+                    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password);
+                    user.UpdatedAt = DateTime.Now;
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Password upgraded to BCrypt hash for user {user.Username}");
+                }
+
+                // Đăng nhập thành công - Lưu thông tin vào session
                 HttpContext.Session.SetInt32("UserId", user.UserId);
                 HttpContext.Session.SetString("Username", user.Username);
                 HttpContext.Session.SetString("Email", user.Email);
@@ -73,7 +101,7 @@ namespace TuThien.Controllers
                 // Ghi log
                 _logger.LogInformation($"User {user.Username} logged in successfully");
 
-                // Redirect v? trang tr??c ?� ho?c trang ch?
+                // Redirect về trang trước đó hoặc trang chủ
                 if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 {
                     return Redirect(returnUrl);
@@ -84,7 +112,7 @@ namespace TuThien.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during login");
-                ModelState.AddModelError(string.Empty, "?� x?y ra l?i. Vui l�ng th? l?i sau.");
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi. Vui lòng thử lại sau.");
                 return View(model);
             }
         }
@@ -108,24 +136,24 @@ namespace TuThien.Controllers
 
             try
             {
-                // Ki?m tra username ?� t?n t?i
+                // Kiểm tra username đã tồn tại
                 if (await _context.Users.AnyAsync(u => u.Username == model.Username))
                 {
-                    ModelState.AddModelError("Username", "T�n ??ng nh?p ?� t?n t?i");
+                    ModelState.AddModelError("Username", "Tên đăng nhập đã tồn tại");
                     return View(model);
                 }
 
-                // Ki?m tra email ?� t?n t?i
+                // Kiểm tra email đã tồn tại
                 if (await _context.Users.AnyAsync(u => u.Email == model.Email))
                 {
-                    ModelState.AddModelError("Email", "Email ?� ???c s? d?ng");
+                    ModelState.AddModelError("Email", "Email đã được sử dụng");
                     return View(model);
                 }
 
-                // Hash password v?i BCrypt
+                // Hash password với BCrypt
                 var passwordHash = BCrypt.Net.BCrypt.HashPassword(model.Password);
 
-                // T?o user m?i
+                // Tạo user mới
                 var user = new User
                 {
                     Username = model.Username,
@@ -141,7 +169,7 @@ namespace TuThien.Controllers
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
 
-                // T?o profile
+                // Tạo profile
                 var profile = new UserProfile
                 {
                     UserId = user.UserId,
@@ -153,13 +181,13 @@ namespace TuThien.Controllers
 
                 _logger.LogInformation($"New user registered: {user.Username}");
 
-                TempData["SuccessMessage"] = "??ng k� th�nh c�ng! Vui l�ng ??ng nh?p.";
+                TempData["SuccessMessage"] = "Đăng ký thành công! Vui lòng đăng nhập.";
                 return RedirectToAction(nameof(Login));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during registration");
-                ModelState.AddModelError(string.Empty, "?� x?y ra l?i. Vui l�ng th? l?i sau.");
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi. Vui lòng thử lại sau.");
                 return View(model);
             }
         }

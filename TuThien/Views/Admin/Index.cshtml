@@ -1,0 +1,283 @@
+@model TuThien.Controllers.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="row g-4 mb-4">
+    <!-- Stat Cards -->
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div>
+                    <div class="stat-value">@Model.TotalUsers.ToString("N0")</div>
+                    <div class="stat-label">Người dùng</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-megaphone"></i>
+                </div>
+                <div>
+                    <div class="stat-value">@Model.TotalCampaigns.ToString("N0")</div>
+                    <div class="stat-label">Chiến dịch (@Model.ActiveCampaigns đang hoạt động)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon bg-info bg-opacity-10 text-info">
+                    <i class="bi bi-cash-coin"></i>
+                </div>
+                <div>
+                    <div class="stat-value">@Model.TotalDonations.ToString("N0")đ</div>
+                    <div class="stat-label">Tổng quyên góp (@Model.TotalDonationCount lượt)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-exclamation-circle"></i>
+                </div>
+                <div>
+                    <div class="stat-value">@Model.PendingDisbursements</div>
+                    <div class="stat-label">Yêu cầu giải ngân chờ duyệt</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Top Campaigns -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-trophy me-2"></i>Top 5 Chiến dịch quyên góp nhiều nhất</span>
+                <a href="@Url.Action("Campaigns", "Admin")" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Chiến dịch</th>
+                            <th class="text-end">Đã nhận</th>
+                            <th class="text-end">Mục tiêu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var campaign in Model.TopCampaigns)
+                        {
+                            var progress = campaign.TargetAmount > 0 ? (campaign.CurrentAmount ?? 0) / campaign.TargetAmount * 100 : 0;
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@campaign.Title</div>
+                                    <small class="text-muted">@campaign.Creator?.Username</small>
+                                </td>
+                                <td class="text-end">
+                                    <div class="fw-semibold text-success">@((campaign.CurrentAmount ?? 0).ToString("N0"))đ</div>
+                                    <div class="progress" style="height: 4px; width: 80px; margin-left: auto;">
+                                        <div class="progress-bar bg-success" style="width: @progress%"></div>
+                                    </div>
+                                </td>
+                                <td class="text-end">@campaign.TargetAmount.ToString("N0")đ</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Donations -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock-history me-2"></i>Quyên góp gần đây</span>
+                <a href="@Url.Action("Donations", "Admin")" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Người quyên góp</th>
+                            <th>Chiến dịch</th>
+                            <th class="text-end">Số tiền</th>
+                            <th>Thời gian</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var donation in Model.RecentDonations)
+                        {
+                            <tr>
+                                <td>
+                                    @if (donation.IsAnonymous == true)
+                                    {
+                                        <span class="text-muted"><i class="bi bi-incognito me-1"></i>Ẩn danh</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@(donation.User?.Username ?? "N/A")</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="text-truncate d-inline-block" style="max-width: 150px;" title="@donation.Campaign?.Title">
+                                        @donation.Campaign?.Title
+                                    </span>
+                                </td>
+                                <td class="text-end fw-semibold text-success">@donation.Amount.ToString("N0")đ</td>
+                                <td>
+                                    <small class="text-muted">@donation.DonatedAt?.ToString("dd/MM HH:mm")</small>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-2">
+    <!-- Monthly Chart -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-bar-chart me-2"></i>Thống kê quyên góp theo tháng (@Model.ChartYear)
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-4 mt-2">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-lightning me-2"></i>Hành động nhanh
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-3 flex-wrap">
+                    <a href="@Url.Action("Disbursements", "Admin", new { status = "pending" })" class="btn btn-warning">
+                        <i class="bi bi-wallet2 me-2"></i>Duyệt giải ngân (@Model.PendingDisbursements)
+                    </a>
+                    <a href="@Url.Action("Reports", "Admin", new { status = "pending" })" class="btn btn-danger">
+                        <i class="bi bi-flag me-2"></i>Xử lý báo cáo (@Model.PendingReports)
+                    </a>
+                    <a href="@Url.Action("Campaigns", "Admin", new { status = "pending" })" class="btn btn-info">
+                        <i class="bi bi-megaphone me-2"></i>Duyệt chiến dịch
+                    </a>
+                    <a href="@Url.Action("SendNotification", "Admin")" class="btn btn-primary">
+                        <i class="bi bi-bell me-2"></i>Gửi thông báo
+                    </a>
+                    <a href="@Url.Action("ExportReport", "Admin")" class="btn btn-success">
+                        <i class="bi bi-file-earmark-spreadsheet me-2"></i>Xuất báo cáo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Monthly donations chart
+        const monthlyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyDonations));
+        const months = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
+        
+        const chartData = months.map((_, index) => {
+            const data = monthlyData.find(d => d.month === index + 1);
+            return data ? data.amount : 0;
+        });
+        
+        const countData = months.map((_, index) => {
+            const data = monthlyData.find(d => d.month === index + 1);
+            return data ? data.count : 0;
+        });
+        
+        new Chart(document.getElementById('monthlyChart'), {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Số tiền quyên góp (VNĐ)',
+                    data: chartData,
+                    backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                    borderRadius: 6,
+                    yAxisID: 'y'
+                }, {
+                    label: 'Số lượt quyên góp',
+                    data: countData,
+                    type: 'line',
+                    borderColor: 'rgba(25, 135, 84, 1)',
+                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        ticks: {
+                            callback: function(value) {
+                                return new Intl.NumberFormat('vi-VN').format(value) + 'đ';
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value + ' lượt';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                if (context.datasetIndex === 0) {
+                                    return new Intl.NumberFormat('vi-VN').format(context.raw) + ' VNĐ';
+                                }
+                                return context.raw + ' lượt';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+}

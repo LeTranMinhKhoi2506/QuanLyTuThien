@@ -46,8 +46,12 @@ public partial class TuThienContext : DbContext
     public virtual DbSet<UserProfile> UserProfiles { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=DESKTOP-MHPJ1P0;Database=TuThien;MultipleActiveResultSets=True;TrustServerCertificate=True;User ID=sa;Password=root");
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            // Connection string is configured in Program.cs via appsettings.json
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

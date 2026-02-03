@@ -1,0 +1,174 @@
+@{
+    ViewData["Title"] = "Gửi thông báo";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-bell me-2"></i>Gửi thông báo cho người dùng
+            </div>
+            <div class="card-body">
+                <form id="notificationForm">
+                    <div class="mb-3">
+                        <label class="form-label">Tiêu đề thông báo <span class="text-danger">*</span></label>
+                        <input type="text" id="title" class="form-control" placeholder="Nhập tiêu đề thông báo..." required />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Nội dung thông báo <span class="text-danger">*</span></label>
+                        <textarea id="message" class="form-control" rows="5" placeholder="Nhập nội dung thông báo..." required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Đối tượng nhận <span class="text-danger">*</span></label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="targetType" id="targetAll" value="all" checked>
+                            <label class="form-check-label" for="targetAll">
+                                <strong>Tất cả người dùng</strong>
+                                <small class="text-muted d-block">Gửi thông báo đến toàn bộ người dùng đang hoạt động</small>
+                            </label>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="radio" name="targetType" id="targetSingle" value="single">
+                            <label class="form-check-label" for="targetSingle">
+                                <strong>Một người dùng cụ thể</strong>
+                                <small class="text-muted d-block">Gửi thông báo đến một người dùng theo ID</small>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="userIdField" style="display: none;">
+                        <label class="form-label">User ID</label>
+                        <input type="number" id="targetUserId" class="form-control" placeholder="Nhập ID người dùng..." />
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-send me-2"></i>Gửi thông báo
+                        </button>
+                        <button type="reset" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-x-lg me-2"></i>Xóa form
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>Hướng dẫn
+            </div>
+            <div class="card-body">
+                <p>Sử dụng chức năng này để gửi thông báo hệ thống đến người dùng.</p>
+                
+                <h6>Các loại thông báo thường dùng:</h6>
+                <ul class="small">
+                    <li>Thông báo bảo trì hệ thống</li>
+                    <li>Cập nhật chính sách</li>
+                    <li>Thông báo sự kiện đặc biệt</li>
+                    <li>Nhắc nhở quan trọng</li>
+                </ul>
+                
+                <div class="alert alert-warning small mb-0">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <strong>Lưu ý:</strong> Thông báo gửi đến tất cả người dùng sẽ không thể thu hồi.
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-lightning me-2"></i>Mẫu thông báo
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <button type="button" class="list-group-item list-group-item-action template-btn" 
+                            data-title="Thông báo bảo trì hệ thống" 
+                            data-message="Hệ thống sẽ tạm ngừng hoạt động để bảo trì từ [thời gian] đến [thời gian]. Xin lỗi vì sự bất tiện này.">
+                        <i class="bi bi-tools me-2"></i>Bảo trì hệ thống
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action template-btn" 
+                            data-title="Cập nhật chính sách" 
+                            data-message="Chúng tôi đã cập nhật chính sách sử dụng. Vui lòng đọc và đồng ý với các điều khoản mới để tiếp tục sử dụng dịch vụ.">
+                        <i class="bi bi-file-text me-2"></i>Cập nhật chính sách
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action template-btn" 
+                            data-title="Chúc mừng năm mới!" 
+                            data-message="Chúc bạn và gia đình một năm mới an khang, thịnh vượng. Cảm ơn bạn đã đồng hành cùng chúng tôi trong suốt thời gian qua!">
+                        <i class="bi bi-gift me-2"></i>Chúc mừng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Toggle user ID field
+        document.querySelectorAll('input[name="targetType"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                document.getElementById('userIdField').style.display = this.value === 'single' ? 'block' : 'none';
+            });
+        });
+        
+        // Template buttons
+        document.querySelectorAll('.template-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.getElementById('title').value = this.dataset.title;
+                document.getElementById('message').value = this.dataset.message;
+            });
+        });
+        
+        // Form submit
+        document.getElementById('notificationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('title').value;
+            const message = document.getElementById('message').value;
+            const targetType = document.querySelector('input[name="targetType"]:checked').value;
+            const targetUserId = document.getElementById('targetUserId').value;
+            
+            if (!title || !message) {
+                alert('Vui lòng nhập đầy đủ thông tin!');
+                return;
+            }
+            
+            if (targetType === 'single' && !targetUserId) {
+                alert('Vui lòng nhập User ID!');
+                return;
+            }
+            
+            if (targetType === 'all') {
+                if (!confirm('Bạn có chắc muốn gửi thông báo đến TẤT CẢ người dùng?')) return;
+            }
+            
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('message', message);
+            formData.append('targetType', targetType);
+            if (targetUserId) formData.append('targetUserId', targetUserId);
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            
+            const response = await fetch('@Url.Action("SendNotification", "Admin")', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                alert(result.message);
+                this.reset();
+            } else {
+                alert(result.message);
+            }
+        });
+    </script>
+    @Html.AntiForgeryToken()
+}
