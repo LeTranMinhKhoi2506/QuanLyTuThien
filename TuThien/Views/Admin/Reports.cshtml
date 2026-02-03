@@ -198,7 +198,7 @@
             formData.append('status', status);
             formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
-            const response = await fetch('@Url.Action("UpdateReportStatus", "Admin")', {
+            const response = await fetch('@Url.Action("UpdateStatus", "AdminReports", new { area = "" })', {
                 method: 'POST',
                 body: formData
             });

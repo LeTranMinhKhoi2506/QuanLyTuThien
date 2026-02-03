@@ -199,7 +199,7 @@
             formData.append('adminNote', note);
             formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
-            const response = await fetch('@Url.Action("ApproveDisbursement", "Admin")', {
+            const response = await fetch('@Url.Action("Approve", "AdminDisbursements", new { area = "" })', {
                 method: 'POST',
                 body: formData
             });
@@ -228,7 +228,7 @@
             formData.append('adminNote', note);
             formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
-            const response = await fetch('@Url.Action("RejectDisbursement", "Admin")', {
+            const response = await fetch('@Url.Action("Reject", "AdminDisbursements", new { area = "" })', {
                 method: 'POST',
                 body: formData
             });

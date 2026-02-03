@@ -472,7 +472,7 @@ async function validateTitle(value) {
     checkTitleTimer = setTimeout(async () => {
         try {
             const excludeId = campaignId !== '0' ? `&excludeCampaignId=${campaignId}` : '';
-            const response = await fetch(`@Url.Action("CheckCampaignTitleExists", "Admin")?title=${encodeURIComponent(value.trim())}${excludeId}`);
+            const response = await fetch(`@Url.Action("CheckTitleExists", "AdminCampaigns", new { area = "" })?title=${encodeURIComponent(value.trim())}${excludeId}`);
             const res = await response.json();
             
             if (res.exists) {
@@ -701,7 +701,7 @@ function resetValidationState() {
 
 async function loadCategories() {
     try {
-        const response = await fetch('@Url.Action("GetCategories", "Admin")');
+        const response = await fetch('@Url.Action("GetCategories", "AdminCampaigns", new { area = "" })');
         const res = await response.json();
         if (res.success) {
             categories = res.categories;
@@ -734,7 +734,7 @@ async function editCampaign(id) {
     });
 
     try {
-        const response = await fetch(`@Url.Action("GetCampaign", "Admin")?id=${id}`);
+        const response = await fetch(`@Url.Action("Get", "AdminCampaigns", new { area = "" })?id=${id}`);
         const res = await response.json();
         Swal.close();
 
@@ -842,7 +842,7 @@ async function editCampaign(id) {
         formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
 
         try {
-            const url = isEdit ? '@Url.Action("UpdateCampaign", "Admin")' : '@Url.Action("CreateCampaign", "Admin")';
+            const url = isEdit ? '@Url.Action("Update", "AdminCampaigns", new { area = "" })' : '@Url.Action("Create", "AdminCampaigns", new { area = "" })';
             const response = await fetch(url, {
                 method: 'POST',
                 body: formData
@@ -903,7 +903,7 @@ async function editCampaign(id) {
         formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
 
         try {
-            const response = await fetch('@Url.Action("DeleteCampaign", "Admin")', {
+            const response = await fetch('@Url.Action("Delete", "AdminCampaigns", new { area = "" })', {
                 method: 'POST',
                 body: formData
             });
@@ -961,7 +961,7 @@ async function editCampaign(id) {
             formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
             try {
-                const response = await fetch('@Url.Action("ApproveCampaign", "Admin")', {
+                const response = await fetch('@Url.Action("Approve", "AdminCampaigns", new { area = "" })', {
                     method: 'POST',
                     body: formData
                 });
@@ -1030,7 +1030,7 @@ async function editCampaign(id) {
             formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
             try {
-                const response = await fetch('@Url.Action("RejectCampaign", "Admin")', {
+                const response = await fetch('@Url.Action("Reject", "AdminCampaigns", new { area = "" })', {
                     method: 'POST',
                     body: formData
                 });
@@ -1099,7 +1099,7 @@ async function editCampaign(id) {
             formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
             try {
-                const response = await fetch('@Url.Action("CloseCampaign", "Admin")', {
+                const response = await fetch('@Url.Action("Close", "AdminCampaigns", new { area = "" })', {
                     method: 'POST',
                     body: formData
                 });
