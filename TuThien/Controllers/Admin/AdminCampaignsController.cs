@@ -185,7 +185,7 @@ public class AdminCampaignsController : AdminBaseController
             {
                 UserId = campaign.CreatorId,
                 Title = "Chiến dịch bị từ chối",
-                Message = $"Chiến dịch \"{campaign.Title}\" của bạn đã bị từ chối. Lý do: {note}",
+                Message = $"Chiến dịch \"{campaign.Title}\" của bạn đã bị từ chối.",
                 Type = "campaign_update",
                 IsRead = false,
                 CreatedAt = DateTime.Now
