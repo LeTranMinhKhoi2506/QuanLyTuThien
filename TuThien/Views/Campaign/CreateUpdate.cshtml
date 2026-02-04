@@ -1,0 +1,513 @@
+﻿@model TuThien.Models.CampaignUpdateViewModel
+@{
+    ViewData["Title"] = "Tạo tin tức mới";
+    Layout = "~/Views/Shared/_CampaignLayout.cshtml";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+    .create-update-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem 0;
+    }
+
+    .campaign-info-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .campaign-info-card img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .form-section {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title i {
+        color: #667eea;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control, .form-select {
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.75rem;
+        transition: all 0.3s;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+    }
+
+    .char-counter {
+        font-size: 0.875rem;
+        color: #718096;
+        margin-top: 0.25rem;
+    }
+
+    .image-upload-area {
+        border: 2px dashed #cbd5e0;
+        border-radius: 10px;
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .image-upload-area:hover {
+        border-color: #667eea;
+        background-color: #f7fafc;
+    }
+
+    .image-upload-area.dragging {
+        border-color: #667eea;
+        background-color: #edf2f7;
+    }
+
+    .image-preview-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .image-preview-item {
+        position: relative;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .image-preview-item img {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+    }
+
+    .image-preview-item .remove-btn {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background: rgba(239, 68, 68, 0.9);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .image-preview-item .remove-btn:hover {
+        background: #dc2626;
+        transform: scale(1.1);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+        border-radius: 8px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+    }
+
+    .alert {
+        border-radius: 10px;
+        border: none;
+        padding: 1rem 1.5rem;
+    }
+
+    .type-option {
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-bottom: 1rem;
+    }
+
+    .type-option:hover {
+        border-color: #667eea;
+        background-color: #f7fafc;
+    }
+
+    .type-option input[type="radio"] {
+        width: 20px;
+        height: 20px;
+    }
+
+    .type-option.selected {
+        border-color: #667eea;
+        background-color: #edf2f7;
+    }
+</style>
+
+<div class="create-update-container">
+    <h1 class="mb-4 fw-bold">
+        <i class="bi bi-newspaper me-2"></i>Tạo tin tức mới
+    </h1>
+
+    <!-- Campaign Info Card -->
+    <div class="campaign-info-card">
+        <div class="d-flex align-items-center gap-3">
+            @if (!string.IsNullOrEmpty(Model.CampaignThumbnail))
+            {
+                <img src="@Model.CampaignThumbnail" alt="@Model.CampaignTitle" />
+            }
+            else
+            {
+                <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-image" style="font-size: 2rem;"></i>
+                </div>
+            }
+            <div class="flex-grow-1">
+                <h5 class="mb-1">Chiến dịch</h5>
+                <h4 class="mb-0 fw-bold">@Model.CampaignTitle</h4>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <form asp-action="CreateUpdate" method="post" enctype="multipart/form-data" id="createUpdateForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="CampaignId" />
+
+        <!-- Type Selection Section -->
+        <div class="form-section">
+            <div class="section-title">
+                <i class="bi bi-tags-fill"></i>
+                <span>Loại tin tức</span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="type-option" onclick="selectType('general', this)">
+                        <div class="d-flex align-items-start gap-3">
+                            <input type="radio" name="Type" value="general" id="type_general" checked asp-for="Type" />
+                            <div class="flex-grow-1">
+                                <label for="type_general" class="form-label mb-1 cursor-pointer">
+                                    <i class="bi bi-newspaper text-primary me-2"></i>
+                                    <strong>Tin tức thường</strong>
+                                </label>
+                                <p class="text-muted small mb-0">
+                                    Cập nhật tiến độ, hình ảnh hoạt động, lời cảm ơn...
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="type-option" onclick="selectType('financial_report', this)">
+                        <div class="d-flex align-items-start gap-3">
+                            <input type="radio" name="Type" value="financial_report" id="type_financial" asp-for="Type" />
+                            <div class="flex-grow-1">
+                                <label for="type_financial" class="form-label mb-1 cursor-pointer">
+                                    <i class="bi bi-file-earmark-bar-graph text-success me-2"></i>
+                                    <strong>Báo cáo tài chính</strong>
+                                </label>
+                                <p class="text-muted small mb-0">
+                                    Minh bạch thu chi, hóa đơn, sao kê...
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <span asp-validation-for="Type" class="text-danger"></span>
+        </div>
+
+        <!-- Title Section -->
+        <div class="form-section">
+            <div class="section-title">
+                <i class="bi bi-pencil-square"></i>
+                <span>Tiêu đề tin tức</span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Title" class="form-label">
+                    Tiêu đề <span class="text-danger">*</span>
+                </label>
+                <input asp-for="Title" class="form-control" 
+                       placeholder="Ví dụ: Đã hoàn thành giai đoạn 1 - Cảm ơn các mạnh thường quân" 
+                       maxlength="255"
+                       oninput="updateCharCounter('Title', 255)" />
+                <div class="d-flex justify-content-between">
+                    <span asp-validation-for="Title" class="text-danger"></span>
+                    <small class="char-counter" id="Title-counter">0/255</small>
+                </div>
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Tiêu đề ngắn gọn, súc tích, thu hút sự chú ý
+                </small>
+            </div>
+        </div>
+
+        <!-- Content Section -->
+        <div class="form-section">
+            <div class="section-title">
+                <i class="bi bi-file-text"></i>
+                <span>Nội dung chi tiết</span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Content" class="form-label">
+                    Nội dung <span class="text-danger">*</span>
+                </label>
+                <textarea asp-for="Content" class="form-control" rows="10" 
+                          placeholder="Nhập nội dung chi tiết về tin tức, cập nhật tiến độ, kết quả đạt được..."
+                          oninput="updateCharCounter('Content', 10000)"></textarea>
+                <div class="d-flex justify-content-between">
+                    <span asp-validation-for="Content" class="text-danger"></span>
+                    <small class="char-counter" id="Content-counter">0 ký tự</small>
+                </div>
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Tối thiểu 50 ký tự. Hãy mô tả rõ ràng, chi tiết để người ủng hộ hiểu rõ tiến độ
+                </small>
+            </div>
+        </div>
+
+        <!-- Images Section -->
+        <div class="form-section">
+            <div class="section-title">
+                <i class="bi bi-images"></i>
+                <span>Hình ảnh minh họa</span>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">
+                    Thêm hình ảnh <span class="text-muted">(Không bắt buộc)</span>
+                </label>
+                
+                <div class="image-upload-area" id="imageUploadArea" onclick="document.getElementById('imageInput').click()">
+                    <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #cbd5e0;"></i>
+                    <p class="mb-2 mt-3"><strong>Kéo thả ảnh vào đây</strong> hoặc click để chọn</p>
+                    <small class="text-muted">Hỗ trợ: JPG, PNG, GIF (Tối đa 5 ảnh, mỗi ảnh < 5MB)</small>
+                </div>
+
+                <input type="file" 
+                       id="imageInput" 
+                       name="Images" 
+                       accept="image/*" 
+                       multiple 
+                       style="display: none;" 
+                       onchange="handleImageSelect(event)" />
+
+                <div id="imagePreviewContainer" class="image-preview-container"></div>
+                
+                <small class="text-muted d-block mt-2">
+                    <i class="bi bi-lightbulb me-1"></i>
+                    <strong>Gợi ý:</strong> Thêm ảnh thực tế về hoạt động, hóa đơn, biên lai để tăng độ tin cậy
+                </small>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex gap-3 justify-content-end">
+            <a asp-action="MyDetails" asp-route-id="@Model.CampaignId" class="btn btn-secondary">
+                <i class="bi bi-x-lg me-2"></i>Hủy
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-send-fill me-2"></i>Đăng tin tức
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        let selectedImages = [];
+
+        // Character counter
+        function updateCharCounter(fieldName, maxLength) {
+            const input = document.querySelector(`[name="${fieldName}"]`);
+            const counter = document.getElementById(`${fieldName}-counter`);
+            const length = input.value.length;
+            
+            if (fieldName === 'Content') {
+                counter.textContent = `${length} ký tự`;
+            } else {
+                counter.textContent = `${length}/${maxLength}`;
+            }
+            
+            if (length > maxLength * 0.9) {
+                counter.classList.add('text-warning');
+            } else {
+                counter.classList.remove('text-warning');
+            }
+        }
+
+        // Initialize counters on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCharCounter('Title', 255);
+            updateCharCounter('Content', 10000);
+        });
+
+        // Type selection
+        function selectType(type, element) {
+            document.querySelectorAll('.type-option').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            document.getElementById('type_' + (type === 'general' ? 'general' : 'financial')).checked = true;
+        }
+
+        // Image handling
+        const imageUploadArea = document.getElementById('imageUploadArea');
+        const imageInput = document.getElementById('imageInput');
+        const previewContainer = document.getElementById('imagePreviewContainer');
+
+        // Drag and drop
+        imageUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            imageUploadArea.classList.add('dragging');
+        });
+
+        imageUploadArea.addEventListener('dragleave', () => {
+            imageUploadArea.classList.remove('dragging');
+        });
+
+        imageUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            imageUploadArea.classList.remove('dragging');
+            
+            const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+            handleFiles(files);
+        });
+
+        function handleImageSelect(event) {
+            const files = Array.from(event.target.files);
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            if (selectedImages.length + files.length > 5) {
+                alert('Chỉ được tải lên tối đa 5 ảnh');
+                return;
+            }
+
+            files.forEach(file => {
+                if (file.size > 5 * 1024 * 1024) {
+                    alert(`File ${file.name} quá lớn (> 5MB)`);
+                    return;
+                }
+
+                selectedImages.push(file);
+                displayImagePreview(file);
+            });
+
+            updateFileInput();
+        }
+
+        function displayImagePreview(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const div = document.createElement('div');
+                div.className = 'image-preview-item';
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview">
+                    <button type="button" class="remove-btn" onclick="removeImage('${file.name}')">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                `;
+                previewContainer.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeImage(fileName) {
+            selectedImages = selectedImages.filter(img => img.name !== fileName);
+            updateFileInput();
+            
+            // Re-render previews
+            previewContainer.innerHTML = '';
+            selectedImages.forEach(file => displayImagePreview(file));
+        }
+
+        function updateFileInput() {
+            const dataTransfer = new DataTransfer();
+            selectedImages.forEach(file => dataTransfer.items.add(file));
+            imageInput.files = dataTransfer.files;
+        }
+
+        // Form validation
+        document.getElementById('createUpdateForm').addEventListener('submit', function(e) {
+            const title = document.querySelector('[name="Title"]').value.trim();
+            const content = document.querySelector('[name="Content"]').value.trim();
+
+            if (title.length < 10) {
+                e.preventDefault();
+                alert('Tiêu đề phải có ít nhất 10 ký tự');
+                return;
+            }
+
+            if (content.length < 50) {
+                e.preventDefault();
+                alert('Nội dung phải có ít nhất 50 ký tự');
+                return;
+            }
+
+            // Show loading
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang đăng...';
+        });
+    </script>
+}
