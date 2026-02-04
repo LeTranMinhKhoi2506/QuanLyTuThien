@@ -158,9 +158,44 @@ namespace TuThien.Controllers
             }
             if (model.StartDate < DateTime.Today) 
             {
-                 // Optional warning, but maybe they want to backdate? Let's strictly block past dates for new campaigns?
-                 // Let's just warn about EndDate for now.
                  ModelState.AddModelError("StartDate", "Ngày bắt đầu không được nhỏ hơn ngày hiện tại.");
+            }
+
+            // 3. Logic Validation: Milestones
+            if (model.IsPhased && model.Milestones != null)
+            {
+                decimal totalMilestoneAmount = 0;
+                for (int i = 0; i < model.Milestones.Count; i++)
+                {
+                    var m = model.Milestones[i];
+                    totalMilestoneAmount += m.AmountNeeded;
+                    
+                    // a. Kiểm tra ngày kết thúc mốc phải nằm trong khoảng thời gian chiến dịch
+                    if (m.Deadline <= model.StartDate)
+                    {
+                        ModelState.AddModelError($"Milestones[{i}].Deadline", $"Giai đoạn {i+1}: Ngày kết thúc phải sau ngày bắt đầu chiến dịch ({model.StartDate:dd/MM/yyyy}).");
+                    }
+                    if (m.Deadline > model.EndDate)
+                    {
+                        ModelState.AddModelError($"Milestones[{i}].Deadline", $"Giai đoạn {i+1}: Ngày kết thúc không được vượt quá ngày kết thúc chiến dịch ({model.EndDate:dd/MM/yyyy}).");
+                    }
+
+                    // b. Kiểm tra thứ tự thời gian giữa các mốc
+                    if (i > 0)
+                    {
+                        var prevMilestone = model.Milestones[i - 1];
+                        if (m.Deadline <= prevMilestone.Deadline)
+                        {
+                            ModelState.AddModelError($"Milestones[{i}].Deadline", $"Giai đoạn {i+1}: Ngày kết thúc phải sau giai đoạn {i} ({prevMilestone.Deadline:dd/MM/yyyy}).");
+                        }
+                    }
+                }
+
+                // c. Kiểm tra tổng tiền
+                if (totalMilestoneAmount != model.TargetAmount)
+                {
+                    ModelState.AddModelError("TargetAmount", $"Tổng tiền các giai đoạn ({totalMilestoneAmount:N0}) phải bằng số tiền mục tiêu ({model.TargetAmount:N0}).");
+                }
             }
 
             if (ModelState.IsValid)
