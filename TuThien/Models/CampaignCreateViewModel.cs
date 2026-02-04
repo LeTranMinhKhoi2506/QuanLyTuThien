@@ -33,6 +33,12 @@ namespace TuThien.Models
         [Display(Name = "Ảnh đại diện")]
         public IFormFile? ThumbnailImage { get; set; }
 
+        [Display(Name = "Giấy xác nhận hoàn cảnh/chiến dịch")]
+        public List<IFormFile> VerificationDocuments { get; set; } = new List<IFormFile>();
+
+        [Display(Name = "Mô tả tài liệu")]
+        public List<string> VerificationDocDescriptions { get; set; } = new List<string>();
+
         [Required(ErrorMessage = "Vui lòng chọn danh mục")]
         [Display(Name = "Danh mục")]
         public int? CategoryId { get; set; }

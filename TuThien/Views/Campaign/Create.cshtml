@@ -37,6 +37,8 @@
                             <span asp-validation-for="Title" class="text-danger"></span>
                         </div>
 
+
+
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <label asp-for="CategoryId" class="form-label fw-bold">Danh mục <span class="text-danger">*</span></label>
@@ -59,6 +61,33 @@
                             <label asp-for="Description" class="form-label fw-bold">Câu chuyện của bạn <span class="text-danger">*</span></label>
                             <textarea asp-for="Description" class="form-control" rows="8" placeholder="Kể chi tiết về hoàn cảnh, lý do gây quỹ và kế hoạch sử dụng tiền..."></textarea>
                             <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <!-- Verification Documents Section -->
+                        <div class="mb-4 p-4 bg-light rounded-3 border">
+                            <h5 class="text-primary-custom mb-3"><i class="bi bi-shield-check me-2"></i>Giấy tờ xác nhận</h5>
+                            <p class="text-muted small">Vui lòng tải lên các giấy tờ xác thực (Giấy hộ nghèo, quyết định chính quyền, hình ảnh thực tế...) để tăng độ tin cậy cho chiến dịch.</p>
+                            
+                            <div id="documentsContainer">
+                                <!-- Dynamic rows will be added here -->
+                                <div class="row g-2 mb-2 doc-row">
+                                    <div class="col-md-5">
+                                        <input name="VerificationDocuments" class="form-control" type="file" accept=".pdf,image/*" required />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input name="VerificationDocDescriptions" class="form-control" placeholder="Mô tả (VD: Giấy chứng nhận hộ nghèo)" required />
+                                    </div>
+                                    <div class="col-md-1 text-end">
+                                        <button type="button" class="btn btn-outline-danger btn-sm remove-doc" disabled>
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="btnAddDocument">
+                                <i class="bi bi-plus-circle me-1"></i>Thêm tài liệu khác
+                            </button>
                         </div>
 
                         <!-- Time & Settings -->
@@ -135,5 +164,49 @@
                 reader.readAsDataURL(input.files[0]);
             }
         }
+
+        // Dynamic Documents Script
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('documentsContainer');
+            const btnAdd = document.getElementById('btnAddDocument');
+
+            btnAdd.addEventListener('click', function() {
+                const row = document.createElement('div');
+                row.className = 'row g-2 mb-2 doc-row';
+                row.innerHTML = `
+                    <div class="col-md-5">
+                        <input name="VerificationDocuments" class="form-control" type="file" accept=".pdf,image/*" required />
+                    </div>
+                    <div class="col-md-6">
+                        <input name="VerificationDocDescriptions" class="form-control" placeholder="Mô tả..." required />
+                    </div>
+                    <div class="col-md-1 text-end">
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-doc">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(row);
+                updateRemoveButtons();
+            });
+
+            container.addEventListener('click', function(e) {
+                if (e.target.closest('.remove-doc')) {
+                    const row = e.target.closest('.doc-row');
+                    if (document.querySelectorAll('.doc-row').length > 1) {
+                        row.remove();
+                        updateRemoveButtons();
+                    }
+                }
+            });
+
+            function updateRemoveButtons() {
+                const rows = document.querySelectorAll('.doc-row');
+                const buttons = document.querySelectorAll('.remove-doc');
+                buttons.forEach(btn => {
+                    btn.disabled = rows.length === 1;
+                });
+            }
+        });
     </script>
 }
