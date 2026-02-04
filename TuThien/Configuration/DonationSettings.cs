@@ -50,14 +50,40 @@ public class VNPaySettings
 }
 
 /// <summary>
-/// Cấu hình MoMo
+/// Cấu hình MoMo - Sandbox environment
+/// Đăng ký tại: https://developers.momo.vn/
 /// </summary>
 public class MoMoSettings
 {
     public const string SectionName = "MoMoSettings";
 
+    /// <summary>
+    /// Partner Code được cấp bởi MoMo
+    /// </summary>
     public string PartnerCode { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Access Key được cấp bởi MoMo
+    /// </summary>
     public string AccessKey { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Secret Key để tạo chữ ký
+    /// </summary>
     public string SecretKey { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// API Endpoint - Sandbox: https://test-payment.momo.vn
+    /// </summary>
     public string Endpoint { get; set; } = "https://test-payment.momo.vn";
+    
+    /// <summary>
+    /// URL MoMo sẽ redirect về sau khi thanh toán
+    /// </summary>
+    public string ReturnUrl { get; set; } = "/Donation/MoMoReturn";
+    
+    /// <summary>
+    /// URL MoMo sẽ gọi để thông báo kết quả (IPN)
+    /// </summary>
+    public string NotifyUrl { get; set; } = "/Donation/MoMoNotify";
 }
