@@ -1,0 +1,297 @@
+﻿@{
+    ViewData["Title"] = "Hướng dẫn đóng góp";
+    Layout = "~/Views/Shared/MainLayout.cshtml";
+    var userId = Context.Session.GetInt32("UserId");
+    var isLoggedIn = userId.HasValue;
+}
+
+<link rel="stylesheet" href="~/css/HowToDonate.css" asp-append-version="true" />
+
+<div class="how-to-donate-container">
+    <!-- Header Section -->
+    <div class="guide-header text-center mb-5">
+        <div class="header-icon">
+            <i class="bi bi-book"></i>
+        </div>
+        <h1 class="display-4 fw-bold">Hướng dẫn đóng góp</h1>
+        <p class="lead text-muted">Cách thức quyên góp dễ dàng và an toàn nhất</p>
+    </div>
+
+    <!-- Recommended Method Section -->
+    <div class="card recommended-card shadow-lg mb-5">
+        <div class="card-body p-5">
+            <div class="d-flex align-items-center mb-4">
+                <div class="recommended-badge">
+                    <i class="bi bi-star-fill"></i>
+                    <span>KHUYÊN DÙNG</span>
+                </div>
+            </div>
+            
+            <h2 class="section-title mb-4">
+                <i class="bi bi-wallet2 me-3"></i>
+                ỦNG HỘ QUA VÍ ĐIỆN TỬ (Momo / VNPay)
+            </h2>
+            
+            <div class="alert alert-success border-0">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>Phương thức tối ưu nhất</strong> để hệ thống tự động ghi nhận vào "Lịch sử đóng góp" của bạn
+            </div>
+
+            <p class="lead-text mb-4">
+                Đây là cổng thanh toán chính thức và ổn định nhất của hệ thống. Khi sử dụng phương thức này, 
+                hệ thống sẽ tự động tạo một <strong>mã giao dịch duy nhất</strong> gắn liền với tài khoản của bạn, 
+                đảm bảo <strong class="text-success">100%</strong> khoản đóng góp được lưu trữ vĩnh viễn trong hồ sơ cá nhân 
+                và cập nhật tức thì lên Bảng vàng minh bạch.
+            </p>
+        </div>
+    </div>
+
+    <!-- Detailed Process Section -->
+    <div class="process-section mb-5">
+        <h3 class="section-header text-center mb-5">
+            <i class="bi bi-list-check me-2"></i>
+            QUY TRÌNH THỰC HIỆN CHI TIẾT
+        </h3>
+
+        <!-- Step 1 -->
+        <div class="step-card card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="step-header">
+                    <div class="step-number">
+                        <span>1</span>
+                    </div>
+                    <h4 class="step-title">Chọn phương thức thanh toán</h4>
+                </div>
+                <div class="step-content">
+                    <ul class="step-list">
+                        <li>Tại giao diện chiến dịch bạn muốn ủng hộ, nhấn nút <strong class="text-primary">"Quyên góp ngay"</strong>.</li>
+                        <li>Hệ thống sẽ hiển thị các tùy chọn. Vui lòng chọn biểu tượng <strong>Ví Momo</strong> hoặc <strong>Ví VNPay</strong> (tùy theo ví bạn đang sử dụng).</li>
+                    </ul>
+                    <div class="payment-icons">
+                        <img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" alt="MoMo" class="payment-icon">
+                        <img src="https://vnpay.vn/assets/images/logo-icon/logo-primary.svg" alt="VNPay" class="payment-icon">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-card card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="step-header">
+                    <div class="step-number">
+                        <span>2</span>
+                    </div>
+                    <h4 class="step-title">Nhập thông tin giao dịch</h4>
+                </div>
+                <div class="step-content">
+                    <ul class="step-list">
+                        <li>Nhập <strong>Số tiền</strong> bạn muốn quyên góp.</li>
+                        <li>Viết <strong>Lời nhắn yêu thương</strong> (Lời nhắn này sẽ hiển thị công khai trên danh sách ủng hộ để lan tỏa tinh thần tương thân tương ái).</li>
+                    </ul>
+                    <div class="alert alert-info border-0 mt-3">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>Lưu ý:</strong> Nếu bạn chưa đăng nhập, hãy đăng nhập trước khi thực hiện bước này để khoản tiền được tính vào 
+                        <strong>"Tổng số tiền đã quyên góp"</strong> trong hồ sơ của bạn.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step-card card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="step-header">
+                    <div class="step-number">
+                        <span>3</span>
+                    </div>
+                    <h4 class="step-title">Thực hiện thanh toán an toàn</h4>
+                </div>
+                <div class="step-content">
+                    <p class="mb-3">Sau khi nhấn <strong>"Tiếp tục"</strong>, hệ thống sẽ chuyển hướng sang cổng thanh toán bảo mật:</p>
+                    
+                    <div class="device-options">
+                        <div class="device-option">
+                            <div class="device-icon">
+                                <i class="bi bi-phone-fill"></i>
+                            </div>
+                            <div class="device-content">
+                                <h5><strong>📱 Nếu dùng Điện thoại:</strong></h5>
+                                <p>Ứng dụng Ví (Momo/VNPay) sẽ tự động mở ra. Màn hình sẽ hiển thị sẵn thông tin đơn hàng từ hệ thống Quỹ. 
+                                Bạn chỉ cần kiểm tra lại số tiền và nhấn <strong>"Xác nhận"</strong>.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="device-option">
+                            <div class="device-icon">
+                                <i class="bi bi-laptop-fill"></i>
+                            </div>
+                            <div class="device-content">
+                                <h5><strong>💻 Nếu dùng Máy tính:</strong></h5>
+                                <p>Màn hình sẽ hiển thị một <strong>Mã QR định danh</strong> (Dynamic QR). Bạn hãy mở ứng dụng Ví trên điện thoại 
+                                → Chọn tính năng <strong>"Quét Mã"</strong> → Quét mã trên màn hình máy tính để liên kết thanh toán.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step-card card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="step-header">
+                    <div class="step-number important">
+                        <span>4</span>
+                    </div>
+                    <h4 class="step-title">Xác thực và Hoàn tất <span class="badge bg-danger ms-2">Quan trọng</span></h4>
+                </div>
+                <div class="step-content">
+                    <ul class="step-list">
+                        <li>Sau khi thanh toán thành công trên Ví, vui lòng <strong class="text-danger">KHÔNG tắt trình duyệt ngay</strong>.</li>
+                        <li>Hãy đợi khoảng <strong>3-5 giây</strong> để Ví điện tử gửi tín hiệu xác nhận ngược lại cho Website.</li>
+                        <li>Khi màn hình Website hiện thông báo: <strong class="text-success">"Cảm ơn! Giao dịch thành công"</strong>, 
+                        nghĩa là dữ liệu của bạn đã được ghi nhận an toàn vào máy chủ.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="step-card card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="step-header">
+                    <div class="step-number">
+                        <span>5</span>
+                    </div>
+                    <h4 class="step-title">Kiểm tra "Lịch sử đóng góp"</h4>
+                </div>
+                <div class="step-content">
+                    <ul class="step-list">
+                        <li>Ngay lập tức, bạn có thể truy cập vào mục <strong>Tài khoản → Lịch sử quyên góp</strong> để thấy giao dịch vừa thực hiện 
+                        (bao gồm thời gian, mã giao dịch, và trạng thái <strong class="text-success">"Đã ghi nhận"</strong>).</li>
+                        <li>Đồng thời, tên của bạn cũng sẽ xuất hiện ngay trên danh sách <strong>"Nhà hảo tâm mới nhất"</strong> của chiến dịch.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Why Use E-Wallet Section -->
+    <div class="benefits-section card shadow-lg mb-5">
+        <div class="card-body p-5">
+            <h3 class="section-header text-center mb-5">
+                <i class="bi bi-lightbulb-fill me-2"></i>
+                💡 TẠI SAO NÊN DÙNG VÍ ĐIỆN TỬ?
+            </h3>
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="benefit-card">
+                        <div class="benefit-icon">
+                            <i class="bi bi-check-circle-fill"></i>
+                        </div>
+                        <h5 class="benefit-title">Chính xác tuyệt đối</h5>
+                        <p class="benefit-text">
+                            Không lo chuyển nhầm số tài khoản hay sai nội dung chuyển khoản. Mọi thứ được hệ thống tạo tự động.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="benefit-card">
+                        <div class="benefit-icon">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                        <h5 class="benefit-title">Minh bạch hồ sơ</h5>
+                        <p class="benefit-text">
+                            Giúp bạn xây dựng "Hồ sơ thiện nguyện" cá nhân. Bạn có thể xem lại tổng số tiền mình đã giúp đỡ cộng đồng qua các năm, 
+                            hoặc dùng làm bằng chứng xác thực khi cần.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="benefit-card">
+                        <div class="benefit-icon">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
+                        <h5 class="benefit-title">Cập nhật Real-time</h5>
+                        <p class="benefit-text">
+                            Số tiền ủng hộ được cộng ngay vào thanh tiến độ của chiến dịch, giúp các nhà hảo tâm khác thấy được sức mạnh chung của cộng đồng.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="cta-section text-center py-5">
+        <h3 class="mb-4">Sẵn sàng góp sức?</h3>
+        <p class="lead mb-4">Hãy bắt đầu hành trình từ thiện của bạn ngay hôm nay</p>
+        <div class="cta-buttons">
+            <a href="@Url.Action("Index", "TrangChu")" class="btn btn-primary btn-lg me-3">
+                <i class="bi bi-house-heart me-2"></i>Khám phá chiến dịch
+            </a>
+            @if (!isLoggedIn)
+            {
+                <a href="@Url.Action("Login", "Account")" class="btn btn-outline-primary btn-lg">
+                    <i class="bi bi-person-circle me-2"></i>Đăng nhập để bắt đầu
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="faq-section mt-5">
+        <h3 class="section-header text-center mb-4">
+            <i class="bi bi-question-circle me-2"></i>
+            Câu hỏi thường gặp
+        </h3>
+        
+        <div class="accordion" id="faqAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                        Tôi có thể quyên góp mà không cần đăng nhập không?
+                    </button>
+                </h2>
+                <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        Có, bạn vẫn có thể quyên góp mà không cần đăng nhập. Tuy nhiên, để khoản đóng góp được ghi nhận vào lịch sử cá nhân 
+                        và bạn có thể theo dõi tổng số tiền đã quyên góp, chúng tôi khuyến khích bạn đăng nhập trước khi thực hiện giao dịch.
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                        Làm sao để biết giao dịch của tôi đã thành công?
+                    </button>
+                </h2>
+                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        Sau khi thanh toán thành công, bạn sẽ nhận được thông báo trên màn hình và email xác nhận (nếu đã đăng nhập). 
+                        Đồng thời, bạn có thể kiểm tra trong mục "Lịch sử quyên góp" của tài khoản để xem chi tiết giao dịch.
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                        Tôi có thể hủy giao dịch sau khi đã thanh toán không?
+                    </button>
+                </h2>
+                <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        Sau khi giao dịch được xác nhận thành công, khoản tiền sẽ được chuyển trực tiếp vào quỹ của chiến dịch và không thể hoàn lại. 
+                        Vui lòng cân nhắc kỹ trước khi thực hiện quyên góp.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

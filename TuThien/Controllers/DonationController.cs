@@ -49,6 +49,71 @@ public class DonationController : Controller
     }
 
     /// <summary>
+    /// Trang hướng dẫn đóng góp
+    /// </summary>
+    [HttpGet]
+    public IActionResult HowToDonate()
+    {
+        return View();
+    }
+
+    /// <summary>
+    /// Trang lịch sử đóng góp của người dùng
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> DonationUpdates(string? status, int page = 1)
+    {
+        var userId = GetCurrentUserId();
+        
+        if (!userId.HasValue)
+        {
+            TempData["ErrorMessage"] = "Vui lòng đăng nhập để xem lịch sử đóng góp";
+            return RedirectToAction("Login", "Account", new { returnUrl = "/Donation/DonationUpdates" });
+        }
+
+        var query = _context.Donations
+            .Include(d => d.Campaign)
+                .ThenInclude(c => c.Category)
+            .Where(d => d.UserId == userId.Value)
+            .AsQueryable();
+
+        // Filter by status
+        if (!string.IsNullOrEmpty(status))
+        {
+            query = query.Where(d => d.PaymentStatus == status);
+        }
+
+        // Pagination
+        int pageSize = 10;
+        var totalItems = await query.CountAsync();
+        var donations = await query
+            .OrderByDescending(d => d.DonatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        // Calculate statistics
+        var totalDonated = await _context.Donations
+            .Where(d => d.UserId == userId.Value && d.PaymentStatus == "completed")
+            .SumAsync(d => (decimal?)d.Amount) ?? 0;
+
+        var totalCampaigns = await _context.Donations
+            .Where(d => d.UserId == userId.Value && d.PaymentStatus == "completed")
+            .Select(d => d.CampaignId)
+            .Distinct()
+            .CountAsync();
+
+        ViewBag.TotalDonated = totalDonated;
+        ViewBag.TotalCampaigns = totalCampaigns;
+        ViewBag.TotalDonations = await query.CountAsync();
+        ViewBag.CurrentPage = page;
+        ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+        ViewBag.Status = status;
+
+        return View(donations);
+    }
+
+    /// <summary>
     /// Trang quyên góp cho chiến dịch
     /// </summary>
     [HttpGet]

@@ -24,11 +24,27 @@
         }
         .hero h1 { font-weight:700; }
         .site-sidebar .card { border-radius:6px; }
+        
+        /* Add container spacing */
+        body {
+            background-color: #f8f9fa;
+        }
+        
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            background-color: white;
+        }
     </style>
 </head>
 <body>
     @await Html.PartialAsync("~/Views/Shared/Header.cshtml")
-    @RenderBody()
+    
+    <div class="main-container">
+        @RenderBody()
+    </div>
+    
     @await Html.PartialAsync("~/Views/Shared/Footer.cshtml")
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

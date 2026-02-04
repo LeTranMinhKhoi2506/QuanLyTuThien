@@ -1,0 +1,273 @@
+﻿@model List<TuThien.Models.Donation>
+@{
+    ViewData["Title"] = "Lịch sử đóng góp của tôi";
+    Layout = "~/Views/Shared/MainLayout.cshtml";
+    var totalDonated = (decimal)ViewBag.TotalDonated;
+    var totalCampaigns = (int)ViewBag.TotalCampaigns;
+    var totalDonations = (int)ViewBag.TotalDonations;
+}
+
+<link rel="stylesheet" href="~/css/DonationUpdates.css" asp-append-version="true" />
+
+<div class="donation-updates-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="page-title">
+                    <i class="bi bi-clock-history me-3"></i>Lịch sử đóng góp
+                </h1>
+                <p class="page-subtitle">Theo dõi tất cả các khoản đóng góp của bạn</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="@Url.Action("Index", "TrangChu")" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Quyên góp mới
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="stat-card stat-card-primary">
+                <div class="stat-icon">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-value">@totalDonated.ToString("N0") VNĐ</h3>
+                    <p class="stat-label">Tổng đã đóng góp</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card stat-card-success">
+                <div class="stat-icon">
+                    <i class="bi bi-heart-fill"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-value">@totalCampaigns</h3>
+                    <p class="stat-label">Chiến dịch đã ủng hộ</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card stat-card-info">
+                <div class="stat-icon">
+                    <i class="bi bi-receipt"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-value">@totalDonations</h3>
+                    <p class="stat-label">Tổng số lần quyên góp</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Trạng thái</label>
+                    <select name="status" class="form-select">
+                        <option value="">Tất cả</option>
+                        <option value="completed" selected="@(ViewBag.Status == "completed")">Thành công</option>
+                        <option value="pending" selected="@(ViewBag.Status == "pending")">Đang xử lý</option>
+                        <option value="failed" selected="@(ViewBag.Status == "failed")">Thất bại</option>
+                    </select>
+                </div>
+                <div class="col-md-8 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-funnel me-2"></i>Lọc
+                    </button>
+                    <a href="@Url.Action("DonationUpdates")" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-2"></i>Xóa bộ lọc
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Donations List -->
+    <div class="donations-list">
+        @if (Model.Any())
+        {
+            @foreach (var donation in Model)
+            {
+                var statusClass = donation.PaymentStatus switch
+                {
+                    "completed" => "status-completed",
+                    "pending" => "status-pending",
+                    "failed" => "status-failed",
+                    _ => ""
+                };
+                
+                var statusText = donation.PaymentStatus switch
+                {
+                    "completed" => "Thành công",
+                    "pending" => "Đang xử lý",
+                    "failed" => "Thất bại",
+                    _ => donation.PaymentStatus
+                };
+                
+                var statusIcon = donation.PaymentStatus switch
+                {
+                    "completed" => "bi-check-circle-fill",
+                    "pending" => "bi-clock-fill",
+                    "failed" => "bi-x-circle-fill",
+                    _ => "bi-question-circle-fill"
+                };
+
+                var paymentMethodIcon = donation.PaymentMethod?.ToLower() switch
+                {
+                    "momo" => "bi-wallet2",
+                    "vnpay" => "bi-credit-card-2-front",
+                    "bank_transfer" => "bi-bank",
+                    _ => "bi-cash"
+                };
+
+                <div class="donation-card @statusClass">
+                    <div class="donation-header">
+                        <div class="donation-status">
+                            <i class="bi @statusIcon me-2"></i>
+                            <span class="status-text">@statusText</span>
+                        </div>
+                        <div class="donation-date">
+                            <i class="bi bi-calendar3 me-2"></i>
+                            <span>@donation.DonatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                    </div>
+
+                    <div class="donation-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <div class="campaign-info">
+                                    @if (!string.IsNullOrEmpty(donation.Campaign?.ThumbnailUrl))
+                                    {
+                                        <div class="campaign-thumbnail">
+                                            <img src="@donation.Campaign.ThumbnailUrl" alt="@donation.Campaign.Title" 
+                                                 onerror="this.src='/images/default-campaign.jpg'" />
+                                        </div>
+                                    }
+                                    <div class="campaign-details">
+                                        <h5 class="campaign-title">
+                                            <a href="@Url.Action("Details", "TrangChu", new { id = donation.CampaignId })">
+                                                @donation.Campaign?.Title
+                                            </a>
+                                        </h5>
+                                        @if (donation.Campaign?.Category != null)
+                                        {
+                                            <span class="campaign-category">
+                                                <i class="bi bi-tag me-1"></i>@donation.Campaign.Category.Name
+                                            </span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(donation.Message))
+                                        {
+                                            <p class="donation-message">
+                                                <i class="bi bi-chat-quote me-2"></i>
+                                                <em>"@donation.Message"</em>
+                                            </p>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="donation-summary">
+                                    <div class="donation-amount">
+                                        <div class="amount-label">Số tiền</div>
+                                        <div class="amount-value">@donation.Amount.ToString("N0") VNĐ</div>
+                                    </div>
+                                    <div class="donation-method">
+                                        <i class="bi @paymentMethodIcon me-2"></i>
+                                        <span>
+                                            @(donation.PaymentMethod switch
+                                            {
+                                                "momo" => "Ví MoMo",
+                                                "vnpay" => "VNPay",
+                                                "bank_transfer" => "Chuyển khoản",
+                                                _ => donation.PaymentMethod
+                                            })
+                                        </span>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(donation.TransactionCode))
+                                    {
+                                        <div class="transaction-code">
+                                            <small class="text-muted">Mã GD:</small>
+                                            <code>@donation.TransactionCode</code>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="donation-footer">
+                        <div class="donation-actions">
+                            <a href="@Url.Action("Details", "TrangChu", new { id = donation.CampaignId })" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye me-1"></i>Xem chiến dịch
+                            </a>
+                            @if (donation.PaymentStatus == "completed")
+                            {
+                                <button class="btn btn-sm btn-outline-secondary" 
+                                        onclick="printReceipt('@donation.TransactionCode')">
+                                    <i class="bi bi-printer me-1"></i>In hóa đơn
+                                </button>
+                            }
+                        </div>
+                        @if (donation.IsAnonymous == true)
+                        {
+                            <div class="anonymous-badge">
+                                <i class="bi bi-incognito me-1"></i>Ẩn danh
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Pagination -->
+            @if (ViewBag.TotalPages > 1)
+            {
+                <div class="pagination-container">
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                                    <a class="page-link" href="?page=@i&status=@ViewBag.Status">@i</a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="bi bi-inbox"></i>
+                </div>
+                <h3 class="empty-title">Chưa có khoản đóng góp nào</h3>
+                <p class="empty-text">Hãy bắt đầu hành trình thiện nguyện của bạn ngay hôm nay!</p>
+                <a href="@Url.Action("Index", "TrangChu")" class="btn btn-primary btn-lg mt-3">
+                    <i class="bi bi-heart me-2"></i>Khám phá chiến dịch
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function printReceipt(transactionCode) {
+        // TODO: Implement receipt printing functionality
+        Swal.fire({
+            icon: 'info',
+            title: 'Chức năng đang phát triển',
+            text: `In hóa đơn cho mã giao dịch: ${transactionCode}`,
+            confirmButtonColor: '#0b63b7'
+        });
+    }
+</script>
