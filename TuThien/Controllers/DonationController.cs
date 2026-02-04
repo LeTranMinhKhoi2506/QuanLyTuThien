@@ -133,6 +133,7 @@ public class DonationController : Controller
         var activeCampaigns = await _context.Campaigns
             .Include(c => c.Category)
             .Include(c => c.Creator)
+            .Include(c => c.CampaignMilestones.OrderBy(m => m.MilestoneId))
             .Where(c => c.Status == "active")
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
@@ -224,6 +225,7 @@ public class DonationController : Controller
     {
         var campaign = await _context.Campaigns
             .Include(c => c.Creator)
+            .Include(c => c.CampaignMilestones.OrderBy(m => m.MilestoneId))
             .FirstOrDefaultAsync(c => c.CampaignId == campaignId);
 
         if (campaign == null)

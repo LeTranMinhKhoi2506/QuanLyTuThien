@@ -22,14 +22,14 @@ namespace TuThien.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
-        // GET: Campaign/Index
+        // GET: Campaign/Index - Hiển thị danh sách categories
         public async Task<IActionResult> Index()
         {
             var categories = await _context.Categories.ToListAsync();
             return View(categories);
         }
 
-        // GET: Campaign/GetCampaigns
+        // GET: Campaign/GetCampaigns - Lấy campaigns theo category (dùng cho AJAX/Partial View)
         public async Task<IActionResult> GetCampaigns(int? categoryId)
         {
             var query = _context.Campaigns
@@ -46,6 +46,38 @@ namespace TuThien.Controllers
             var campaigns = await query.OrderByDescending(c => c.CurrentAmount).ToListAsync();
 
             return PartialView("_CampaignListPartial", campaigns);
+        }
+
+        // GET: Campaign/ByCategory/1 - Trang hiển thị tất cả campaigns theo category với phân trang
+        [HttpGet("campaigns/category/{id}")]
+        public async Task<IActionResult> ByCategory(int id, int page = 1, int pageSize = 12)
+        {
+            var category = await _context.Categories.FindAsync(id);
+            if (category == null)
+            {
+                return NotFound();
+            }
+
+            var query = _context.Campaigns
+                .Where(c => c.CategoryId == id && c.Status == "active")
+                .Include(c => c.Category)
+                .Include(c => c.Creator)
+                .OrderByDescending(c => c.CreatedAt);
+
+            var totalItems = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            var campaigns = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            ViewBag.Category = category;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+
+            return View(campaigns);
         }
 
         // GET: Campaign/Details/5
@@ -123,10 +155,7 @@ namespace TuThien.Controllers
                     }
                     
                     thumbnailUrl = "/images/campaigns/" + uniqueFileName;
-
                 }
-
-
 
                 // Map to Entity
                 var campaign = new Campaign
@@ -147,63 +176,8 @@ namespace TuThien.Controllers
                     UpdatedAt = DateTime.Now
                 };
 
-                // Validate Phases if enabled
-                if (model.IsPhased)
-                {
-                    if (model.Milestones == null || !model.Milestones.Any())
-                    {
-                        ModelState.AddModelError("IsPhased", "Vui lòng thêm ít nhất một giai đoạn.");
-                        ViewData["CategoryId"] = new SelectList(_context.Categories, "CategoryId", "Name", model.CategoryId);
-                        return View(model);
-                    }
-
-                    if (model.Milestones.Sum(m => m.AmountNeeded) != model.TargetAmount)
-                    {
-                        ModelState.AddModelError("TargetAmount", "Tổng tiền các giai đoạn phải bằng số tiền mục tiêu.");
-                        ViewData["CategoryId"] = new SelectList(_context.Categories, "CategoryId", "Name", model.CategoryId);
-                        return View(model);
-                    }
-                    
-                    for (int i = 0; i < model.Milestones.Count; i++)
-                    {
-                        if (model.Milestones[i].Deadline > model.EndDate)
-                        {
-                            ModelState.AddModelError($"Milestones[{i}].Deadline", $"Giai đoạn {i + 1} kết thúc sau ngày kết thúc chiến dịch.");
-                        }
-                        if (i > 0 && model.Milestones[i].Deadline < model.Milestones[i - 1].Deadline)
-                        {
-                            ModelState.AddModelError($"Milestones[{i}].Deadline", $"Giai đoạn {i + 1} phải kết thúc sau giai đoạn {i}.");
-                        }
-                    }
-
-                    if (!ModelState.IsValid)
-                    {
-                        ViewData["CategoryId"] = new SelectList(_context.Categories, "CategoryId", "Name", model.CategoryId);
-                        return View(model);
-                    }
-                }
-
                 _context.Add(campaign);
                 await _context.SaveChangesAsync();
-
-                // Save Milestones if Valid
-                if (model.IsPhased && model.Milestones != null)
-                {
-                    foreach (var milestone in model.Milestones)
-                    {
-                        var campaignMilestone = new CampaignMilestone
-                        {
-                            CampaignId = campaign.CampaignId,
-                            Title = milestone.Title,
-                            AmountNeeded = milestone.AmountNeeded,
-                            Deadline = milestone.Deadline,
-                            Status = "pending"
-                        };
-                        _context.Add(campaignMilestone);
-                    }
-                    await _context.SaveChangesAsync();
-                }
-
 
                 // Handle Multiple Verification Documents
                 if (model.VerificationDocuments != null && model.VerificationDocuments.Count > 0)
