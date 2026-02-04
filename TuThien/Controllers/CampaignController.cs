@@ -83,7 +83,10 @@ namespace TuThien.Controllers
             }
 
             ViewData["CategoryId"] = new SelectList(_context.Categories, "CategoryId", "Name");
-            return View();
+
+            // Create a new instance of the view model instead of passing null
+            var model = new CampaignCreateViewModel();
+            return View(model);
         }
 
         // POST: Campaign/Create
@@ -243,6 +246,64 @@ namespace TuThien.Controllers
             
             ViewData["CategoryId"] = new SelectList(_context.Categories, "CategoryId", "Name", model.CategoryId);
             return View(model);
+        }
+        // GET: Campaign/MyCampaigns
+        public async Task<IActionResult> MyCampaigns()
+        {
+            int? userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var ownedCampaigns = await _context.Campaigns
+                .Include(c => c.Category)
+                .Where(c => c.CreatorId == userId)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
+
+            var viewModel = new MyCampaignsViewModel
+            {
+                OwnedCampaigns = ownedCampaigns
+            };
+
+            return View(viewModel);
+        }
+        // POST: Campaign/Delete/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            int? userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var campaign = await _context.Campaigns.FindAsync(id);
+            if (campaign == null)
+            {
+                return NotFound();
+            }
+
+            // Ensure only the creator can delete
+            if (campaign.CreatorId != userId)
+            {
+                return Forbid();
+            }
+
+            // Ensure only specific statuses can be deleted
+            string[] allowedStatuses = { "draft", "pending_approval", "rejected" };
+            if (!allowedStatuses.Contains(campaign.Status))
+            {
+                return BadRequest("Không thể xóa chiến dịch này.");
+            }
+
+            _context.Campaigns.Remove(campaign);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Đã xóa chiến dịch thành công.";
+            return RedirectToAction(nameof(MyCampaigns));
         }
     }
 }
