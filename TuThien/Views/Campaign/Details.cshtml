@@ -25,10 +25,10 @@
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
-            <li class="breadcrumb-item"><a href="/campaigns">Chiến dịch</a></li>
+            <li class="breadcrumb-item"><a href="/Campaign">Chiến dịch</a></li>
             @if (Model.Category != null)
             {
-                <li class="breadcrumb-item"><a href="/campaigns/category/@Model.Category.CategoryId">@Model.Category.Name</a></li>
+                <li class="breadcrumb-item"><a href="/Campaign?categoryId=@Model.Category.CategoryId">@Model.Category.Name</a></li>
             }
             <li class="breadcrumb-item active" aria-current="page">@Model.Title</li>
         </ol>

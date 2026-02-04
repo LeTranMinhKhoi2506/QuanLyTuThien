@@ -198,18 +198,22 @@ public class DonationController : Controller
 
         // Calculate statistics
         var totalDonated = await _context.Donations
-            .Where(d => d.UserId == userId.Value && d.PaymentStatus == "completed")
+            .Where(d => d.UserId == userId.Value && d.PaymentStatus == "success")
             .SumAsync(d => (decimal?)d.Amount) ?? 0;
 
         var totalCampaigns = await _context.Donations
-            .Where(d => d.UserId == userId.Value && d.PaymentStatus == "completed")
+            .Where(d => d.UserId == userId.Value && d.PaymentStatus == "success")
             .Select(d => d.CampaignId)
             .Distinct()
             .CountAsync();
 
+        var totalDonations = await _context.Donations
+            .Where(d => d.UserId == userId.Value && d.PaymentStatus == "success")
+            .CountAsync();
+
         ViewBag.TotalDonated = totalDonated;
         ViewBag.TotalCampaigns = totalCampaigns;
-        ViewBag.TotalDonations = await query.CountAsync();
+        ViewBag.TotalDonations = totalDonations;
         ViewBag.CurrentPage = page;
         ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
         ViewBag.Status = status;
@@ -962,5 +966,35 @@ public class DonationController : Controller
         }
 
         await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Lịch sử quyên góp của người dùng
+    /// Route: /my-donations
+    /// </summary>
+    [HttpGet]
+    [Route("my-donations")]
+    public async Task<IActionResult> MyDonations()
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue)
+        {
+            return RedirectToAction("Login", "Account", new { returnUrl = "/my-donations" });
+        }
+
+        var donations = await _context.Donations
+            .Include(d => d.Campaign)
+            .Where(d => d.UserId == userId.Value)
+            .OrderByDescending(d => d.DonatedAt)
+            .ToListAsync();
+
+        // Thống kê
+        ViewBag.TotalDonations = donations.Count;
+        ViewBag.SuccessfulDonations = donations.Count(d => d.PaymentStatus == "success");
+        ViewBag.TotalAmount = donations.Where(d => d.PaymentStatus == "success").Sum(d => d.Amount);
+        ViewBag.CampaignsSupported = donations.Where(d => d.PaymentStatus == "success")
+            .Select(d => d.CampaignId).Distinct().Count();
+
+        return View(donations);
     }
 }

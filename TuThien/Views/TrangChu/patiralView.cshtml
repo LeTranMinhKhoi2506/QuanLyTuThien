@@ -14,7 +14,7 @@
                         <small class="text-muted">@cat.Campaigns.Count() chiến dịch</small>
                     </div>
                 </div>
-                <a href="/campaigns/category/@cat.CategoryId" class="btn btn-outline-primary btn-sm">
+                <a href="/Campaign?categoryId=@cat.CategoryId" class="btn btn-outline-primary btn-sm">
                     Xem tất cả <i class="bi bi-arrow-right"></i>
                 </a>
             </div>
@@ -26,9 +26,10 @@
                     decimal current = camp.CurrentAmount ?? 0m;
                     decimal target = camp.TargetAmount;
                     int percent = target > 0 ? (int)System.Math.Min(100, System.Math.Round((current / target) * 100)) : 0;
+                    var detailUrl = Url.Action("Details", "Campaign", new { id = camp.CampaignId });
                     
                     <div class="col-lg-4 col-md-6">
-                        <div class="campaign-card h-100" data-campaign-id="@camp.CampaignId">
+                        <div class="campaign-card h-100" data-campaign-id="@camp.CampaignId" style="cursor: pointer;" onclick="window.location.href='@detailUrl'">
                             <div class="campaign-image-wrapper">
                                 <img src="@thumb" class="campaign-image" alt="@camp.Title" onerror="this.src='@Url.Content("~/Images/DefaultPic.png")'" />
                                 <div class="campaign-badge">
@@ -66,14 +67,9 @@
                                 </div>
 
                                 <div class="campaign-footer">
-                                    <div class="d-flex gap-2">
-                                        <a class="btn btn-outline-primary flex-fill" href="@Url.Action("Details", "Campaign", new { id = camp.CampaignId })">
-                                            <i class="bi bi-eye me-2"></i>Xem chi tiết
-                                        </a>
-                                        <a class="btn btn-primary btn-donate flex-fill" href="/donate/@camp.CampaignId">
-                                            <i class="bi bi-heart-fill me-2"></i>Quyên góp ngay
-                                        </a>
-                                    </div>
+                                    <a class="btn btn-primary btn-donate w-100" href="/donate/@camp.CampaignId" onclick="event.stopPropagation();">
+                                        <i class="bi bi-heart-fill me-2"></i>Quyên góp ngay
+                                    </a>
                                 </div>
                             </div>
                         </div>

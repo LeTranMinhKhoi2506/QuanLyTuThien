@@ -1,0 +1,90 @@
+@* Partial View: Modal Tạo/Sửa Người dùng *@
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalTitle">Thêm người dùng mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId" value="0" />
+                    
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Lưu ý:</strong> Tên đăng nhập và email phải là duy nhất trong hệ thống.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-person me-1"></i>Tên đăng nhập <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="userName" required minlength="3" maxlength="50" placeholder="Nhập tên đăng nhập" />
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <small id="usernameFeedback" class="text-muted">3-50 ký tự, chỉ chữ cái, số và dấu gạch dưới</small>
+                            <small id="usernameCounter" class="text-muted">0/50</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-envelope me-1"></i>Email <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" class="form-control" id="userEmail" required maxlength="100" placeholder="example@email.com" />
+                        <small id="emailFeedback" class="text-muted">Email hợp lệ và chưa được sử dụng</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" id="passwordLabel">
+                            <i class="bi bi-key me-1"></i>Mật khẩu <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="userPassword" minlength="6" placeholder="Nhập mật khẩu" />
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                                <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                            </button>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <small id="passwordFeedback" class="text-muted">Tối thiểu 6 ký tự</small>
+                            <small id="passwordStrength" class="fw-semibold"></small>
+                        </div>
+                        <small class="text-muted" id="passwordHint" style="display: none;">Để trống nếu không muốn đổi mật khẩu</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-telephone me-1"></i>Số điện thoại
+                        </label>
+                        <input type="tel" class="form-control" id="userPhone" maxlength="15" placeholder="0901234567" />
+                        <small id="phoneFeedback" class="text-muted">Số điện thoại Việt Nam (không bắt buộc)</small>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-person-badge me-1"></i>Vai trò
+                            </label>
+                            <select class="form-select" id="userRole">
+                                <option value="user">Người dùng</option>
+                                <option value="charity_org">Tổ chức từ thiện</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3" id="statusGroup" style="display: none;">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-toggle2-on me-1"></i>Trạng thái
+                            </label>
+                            <select class="form-select" id="userStatus">
+                                <option value="active">Hoạt động</option>
+                                <option value="locked">Đã khóa</option>
+                                <option value="pending_verification">Chờ xác thực</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="saveUser()">
+                    <i class="bi bi-check-lg me-1"></i>Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

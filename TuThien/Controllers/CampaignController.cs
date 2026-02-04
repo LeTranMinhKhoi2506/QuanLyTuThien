@@ -22,10 +22,11 @@ namespace TuThien.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
-        // GET: Campaign/Index - Hiển thị danh sách categories
-        public async Task<IActionResult> Index()
+        // GET: Campaign/Index
+        public async Task<IActionResult> Index(int? categoryId)
         {
             var categories = await _context.Categories.ToListAsync();
+            ViewBag.SelectedCategoryId = categoryId;
             return View(categories);
         }
 
@@ -241,6 +242,7 @@ namespace TuThien.Controllers
                     await _context.SaveChangesAsync();
                 }
                 
+                
                 TempData["SuccessMessage"] = "Chiến dịch đã được tạo thành công và đang chờ duyệt!";
                 return RedirectToAction("Index", "TrangChu"); // Redirect to Home
             }
@@ -251,106 +253,32 @@ namespace TuThien.Controllers
             ViewData["CategoryId"] = new SelectList(_context.Categories, "CategoryId", "Name", model.CategoryId);
             return View(model);
         }
-        // GET: Campaign/MyCampaigns
+
+        // GET: /my-campaigns
+        [HttpGet]
+        [Route("my-campaigns")]
         public async Task<IActionResult> MyCampaigns()
         {
-            int? userId = HttpContext.Session.GetInt32("UserId");
+            var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null)
             {
-                return RedirectToAction("Login", "Account");
+                return RedirectToAction("Login", "Account", new { returnUrl = "/my-campaigns" });
             }
 
-            var ownedCampaigns = await _context.Campaigns
+            var campaigns = await _context.Campaigns
                 .Include(c => c.Category)
-                .Where(c => c.CreatorId == userId)
+                .Include(c => c.Donations)
+                .Where(c => c.CreatorId == userId.Value)
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
 
-            var viewModel = new MyCampaignsViewModel
-            {
-                OwnedCampaigns = ownedCampaigns
-            };
+            // Thống kê
+            ViewBag.TotalCampaigns = campaigns.Count;
+            ViewBag.ActiveCampaigns = campaigns.Count(c => c.Status == "active");
+            ViewBag.TotalRaised = campaigns.Sum(c => c.CurrentAmount ?? 0);
+            ViewBag.TotalDonations = campaigns.Sum(c => c.Donations?.Count ?? 0);
 
-            return View(viewModel);
-        }
-        // POST: Campaign/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
-        {
-            int? userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null)
-            {
-                return RedirectToAction("Login", "Account");
-            }
-
-            var campaign = await _context.Campaigns.FindAsync(id);
-            if (campaign == null)
-            {
-                return NotFound();
-            }
-
-            // Ensure only the creator can delete
-            if (campaign.CreatorId != userId)
-            {
-                return Forbid();
-            }
-
-            // Ensure only specific statuses can be deleted
-            string[] allowedStatuses = { "draft", "pending_approval", "rejected" };
-            if (!allowedStatuses.Contains(campaign.Status))
-            {
-                return BadRequest("Không thể xóa chiến dịch này.");
-            }
-
-            _context.Campaigns.Remove(campaign);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Đã xóa chiến dịch thành công.";
-            return RedirectToAction(nameof(MyCampaigns));
-        }
-
-        // POST: Campaign/AddComment
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddComment(int campaignId, string content)
-        {
-            // Check if user is logged in
-            int? userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null)
-            {
-                TempData["ErrorMessage"] = "Bạn cần đăng nhập để bình luận.";
-                return RedirectToAction("Login", "Account", new { returnUrl = $"/Campaign/Details/{campaignId}" });
-            }
-
-            // Validate content
-            if (string.IsNullOrWhiteSpace(content))
-            {
-                TempData["ErrorMessage"] = "Nội dung bình luận không được để trống.";
-                return RedirectToAction("Details", new { id = campaignId });
-            }
-
-            // Check if campaign exists
-            var campaign = await _context.Campaigns.FindAsync(campaignId);
-            if (campaign == null)
-            {
-                return NotFound();
-            }
-
-            // Create new comment
-            var comment = new Comment
-            {
-                CampaignId = campaignId,
-                UserId = userId.Value,
-                Content = content.Trim(),
-                CreatedAt = DateTime.Now
-            };
-
-            _context.Comments.Add(comment);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Bình luận của bạn đã được đăng thành công!";
-            return RedirectToAction("Details", new { id = campaignId });
+            return View(campaigns);
         }
     }
 }

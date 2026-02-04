@@ -58,7 +58,7 @@
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <a class="dropdown-item text-primary fw-semibold" href="/donate-now">
+                                <a class="dropdown-item text-primary fw-semibold" href="/donate">
                                     <i class="bi bi-cash-coin me-2"></i>
                                     Quyên góp ngay
                                 </a>
@@ -76,18 +76,20 @@
                     </li>
                 </ul>
 
-                <form class="d-flex me-3" role="search" method="get" action="/search">
-                    <input class="form-control form-control-sm me-2" type="search" name="q" placeholder="Tìm kiếm" aria-label="Tìm kiếm" />
-                    <button class="btn btn-outline-secondary btn-sm" type="submit">Tìm</button>
+                <form class="d-flex me-3 position-relative" role="search" id="quickSearchForm">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input class="form-control border-start-0 ps-0" type="search" id="quickSearchInput" 
+                               placeholder="Tìm kiếm nhanh..." aria-label="Tìm kiếm" autocomplete="off" />
+                    </div>
+                    <div id="quickSearchResults" class="dropdown-menu w-100 shadow-lg" style="display: none; max-height: 400px; overflow-y: auto;">
+                        <!-- Results will be populated by JS -->
+                    </div>
                 </form>
 
                 <div class="d-flex align-items-center">
-                    <div class="me-2">
-                        <select class="form-select form-select-sm" onchange="location = this.value;">
-                            <option value="#">VN</option>
-                            <option value="#">EN</option>
-                        </select>
-                    </div>
                     
                     @if (isLoggedIn)
                     {
@@ -148,4 +150,273 @@
             margin-top: 0;
         }
     }
+    
+    /* Quick Search Styles */
+    #quickSearchForm {
+        min-width: 250px;
+    }
+    #quickSearchInput:focus {
+        box-shadow: none;
+        border-color: var(--bs-primary);
+    }
+    #quickSearchInput:focus + .input-group-text,
+    #quickSearchForm:focus-within .input-group-text {
+        border-color: var(--bs-primary);
+    }
+    #quickSearchResults {
+        top: 100%;
+        left: 0;
+        border-radius: 8px;
+        border: none;
+    }
+    #quickSearchResults .search-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 15px;
+        cursor: pointer;
+        transition: background-color 0.15s;
+    }
+    #quickSearchResults .search-item:hover,
+    #quickSearchResults .search-item.active {
+        background-color: var(--bs-light);
+    }
+    #quickSearchResults .search-item .search-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+        font-size: 14px;
+    }
+    #quickSearchResults .search-item .search-info {
+        flex: 1;
+    }
+    #quickSearchResults .search-item .search-title {
+        font-weight: 500;
+        font-size: 14px;
+        margin-bottom: 2px;
+    }
+    #quickSearchResults .search-item .search-desc {
+        font-size: 12px;
+        color: #6c757d;
+    }
+    #quickSearchResults .search-category {
+        padding: 8px 15px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background-color: #f8f9fa;
+    }
+    #quickSearchResults .search-shortcut {
+        font-size: 11px;
+        color: #adb5bd;
+        padding: 2px 6px;
+        background: #e9ecef;
+        border-radius: 4px;
+    }
+    .search-highlight {
+        background-color: #fff3cd;
+        padding: 0 2px;
+        border-radius: 2px;
+    }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('quickSearchInput');
+    const searchResults = document.getElementById('quickSearchResults');
+    let selectedIndex = -1;
+    
+    // Định nghĩa các mục tìm kiếm nhanh
+    const searchItems = [
+        // Trang chính
+        { title: 'Trang chủ', desc: 'Về trang chủ', url: '/', icon: 'bi-house', color: 'bg-primary', category: 'Điều hướng', keywords: ['home', 'trang chu', 'main'] },
+        { title: 'Tin tức', desc: 'Xem tin tức mới nhất', url: '@Url.Action("Index", "News")', icon: 'bi-newspaper', color: 'bg-info', category: 'Điều hướng', keywords: ['news', 'tin', 'bao'] },
+        { title: 'Chiến dịch', desc: 'Danh sách chiến dịch từ thiện', url: '@Url.Action("Index", "Campaign")', icon: 'bi-megaphone', color: 'bg-success', category: 'Điều hướng', keywords: ['campaign', 'chien dich', 'quyen gop'] },
+        
+        // Quyên góp
+        { title: 'Quyên góp ngay', desc: 'Đóng góp cho chiến dịch', url: '/donate', icon: 'bi-heart-fill', color: 'bg-danger', category: 'Quyên góp', keywords: ['donate', 'quyen gop', 'dong gop', 'ung ho'] },
+        { title: 'Hướng dẫn đóng góp', desc: 'Cách thức quyên góp', url: '@Url.Action("HowToDonate", "Donation")', icon: 'bi-book', color: 'bg-warning', category: 'Quyên góp', keywords: ['huong dan', 'guide', 'how to'] },
+        { title: 'Cập nhật đóng góp', desc: 'Theo dõi các khoản đóng góp', url: '@Url.Action("DonationUpdates", "Donation")', icon: 'bi-bell', color: 'bg-info', category: 'Quyên góp', keywords: ['update', 'cap nhat', 'theo doi'] },
+        
+        // Tài khoản
+        { title: 'Tài khoản của tôi', desc: 'Quản lý thông tin cá nhân', url: '@Url.Action("Profile", "Account")', icon: 'bi-person', color: 'bg-primary', category: 'Tài khoản', keywords: ['profile', 'tai khoan', 'ca nhan', 'account'] },
+        { title: 'Chiến dịch của tôi', desc: 'Xem chiến dịch đã tạo', url: '/my-campaigns', icon: 'bi-heart', color: 'bg-danger', category: 'Tài khoản', keywords: ['my campaign', 'chien dich cua toi'] },
+        { title: 'Quyên góp của tôi', desc: 'Lịch sử quyên góp', url: '/my-donations', icon: 'bi-gift', color: 'bg-success', category: 'Tài khoản', keywords: ['my donation', 'lich su', 'history'] },
+        
+        // Tạo mới
+        { title: 'Tạo chiến dịch mới', desc: 'Bắt đầu chiến dịch từ thiện', url: '@Url.Action("Create", "Campaign")', icon: 'bi-plus-circle', color: 'bg-success', category: 'Hành động', keywords: ['create', 'tao moi', 'new campaign'] },
+        
+        // Xác thực
+        { title: 'Đăng nhập', desc: 'Đăng nhập tài khoản', url: '@Url.Action("Login", "Account")', icon: 'bi-box-arrow-in-right', color: 'bg-primary', category: 'Xác thực', keywords: ['login', 'dang nhap', 'sign in'] },
+        { title: 'Đăng ký', desc: 'Tạo tài khoản mới', url: '@Url.Action("Register", "Account")', icon: 'bi-person-plus', color: 'bg-success', category: 'Xác thực', keywords: ['register', 'dang ky', 'sign up'] },
+        
+        @if (isAdmin)
+        {
+            // Admin
+            @:{ title: 'Admin Panel', desc: 'Trang quản trị', url: '@Url.Action("Index", "Admin")', icon: 'bi-speedometer2', color: 'bg-dark', category: 'Quản trị', keywords: ['admin', 'quan tri', 'dashboard'] },
+            @:{ title: 'Quản lý người dùng', desc: 'Danh sách người dùng', url: '@Url.Action("Users", "Admin")', icon: 'bi-people', color: 'bg-primary', category: 'Quản trị', keywords: ['users', 'nguoi dung', 'quan ly'] },
+            @:{ title: 'Quản lý chiến dịch', desc: 'Duyệt và quản lý chiến dịch', url: '@Url.Action("Campaigns", "Admin")', icon: 'bi-megaphone', color: 'bg-success', category: 'Quản trị', keywords: ['campaigns', 'chien dich', 'duyet'] },
+            @:{ title: 'Quản lý quyên góp', desc: 'Xem lịch sử quyên góp', url: '@Url.Action("Donations", "Admin")', icon: 'bi-cash-stack', color: 'bg-warning', category: 'Quản trị', keywords: ['donations', 'quyen gop', 'giao dich'] },
+            @:{ title: 'Quản lý tin tức', desc: 'Đăng và quản lý tin tức', url: '@Url.Action("Index", "AdminNews")', icon: 'bi-newspaper', color: 'bg-info', category: 'Quản trị', keywords: ['news', 'tin tuc', 'bai viet'] },
+            @:{ title: 'Quản lý danh mục', desc: 'Danh mục chiến dịch', url: '@Url.Action("Categories", "Admin")', icon: 'bi-folder', color: 'bg-secondary', category: 'Quản trị', keywords: ['categories', 'danh muc'] },
+        }
+    ];
+    
+    // Xóa dấu tiếng Việt để tìm kiếm
+    function removeAccents(str) {
+        return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
+    
+    // Highlight text khớp
+    function highlightMatch(text, query) {
+        if (!query) return text;
+        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return text.replace(regex, '<span class="search-highlight">$1</span>');
+    }
+    
+    // Tìm kiếm và hiển thị kết quả
+    function performSearch(query) {
+        if (!query || query.length < 1) {
+            searchResults.style.display = 'none';
+            return;
+        }
+        
+        const normalizedQuery = removeAccents(query);
+        
+        // Lọc kết quả
+        const results = searchItems.filter(item => {
+            const titleMatch = removeAccents(item.title).includes(normalizedQuery);
+            const descMatch = removeAccents(item.desc).includes(normalizedQuery);
+            const keywordMatch = item.keywords.some(k => removeAccents(k).includes(normalizedQuery));
+            return titleMatch || descMatch || keywordMatch;
+        });
+        
+        if (results.length === 0) {
+            searchResults.innerHTML = `
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-search display-6 d-block mb-2"></i>
+                    <span>Không tìm thấy kết quả cho "${query}"</span>
+                </div>
+            `;
+            searchResults.style.display = 'block';
+            return;
+        }
+        
+        // Nhóm theo category
+        const grouped = results.reduce((acc, item) => {
+            if (!acc[item.category]) acc[item.category] = [];
+            acc[item.category].push(item);
+            return acc;
+        }, {});
+        
+        // Render kết quả
+        let html = '';
+        let itemIndex = 0;
+        
+        for (const [category, items] of Object.entries(grouped)) {
+            html += `<div class="search-category">${category}</div>`;
+            items.forEach(item => {
+                html += `
+                    <div class="search-item" data-index="${itemIndex}" data-url="${item.url}">
+                        <div class="search-icon ${item.color} bg-opacity-10 text-${item.color.replace('bg-', '')}">
+                            <i class="bi ${item.icon}"></i>
+                        </div>
+                        <div class="search-info">
+                            <div class="search-title">${highlightMatch(item.title, query)}</div>
+                            <div class="search-desc">${item.desc}</div>
+                        </div>
+                        <span class="search-shortcut">Enter</span>
+                    </div>
+                `;
+                itemIndex++;
+            });
+        }
+        
+        searchResults.innerHTML = html;
+        searchResults.style.display = 'block';
+        selectedIndex = -1;
+        
+        // Gắn sự kiện click cho các item
+        document.querySelectorAll('.search-item').forEach(item => {
+            item.addEventListener('click', function() {
+                window.location.href = this.dataset.url;
+            });
+        });
+    }
+    
+    // Điều hướng bằng phím
+    function navigateResults(direction) {
+        const items = document.querySelectorAll('.search-item');
+        if (items.length === 0) return;
+        
+        items.forEach(item => item.classList.remove('active'));
+        
+        if (direction === 'down') {
+            selectedIndex = (selectedIndex + 1) % items.length;
+        } else {
+            selectedIndex = selectedIndex <= 0 ? items.length - 1 : selectedIndex - 1;
+        }
+        
+        items[selectedIndex].classList.add('active');
+        items[selectedIndex].scrollIntoView({ block: 'nearest' });
+    }
+    
+    // Sự kiện input
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => performSearch(this.value.trim()), 150);
+    });
+    
+    // Sự kiện phím
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            navigateResults('down');
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            navigateResults('up');
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            const activeItem = document.querySelector('.search-item.active');
+            if (activeItem) {
+                window.location.href = activeItem.dataset.url;
+            } else {
+                const firstItem = document.querySelector('.search-item');
+                if (firstItem) window.location.href = firstItem.dataset.url;
+            }
+        } else if (e.key === 'Escape') {
+            searchResults.style.display = 'none';
+            searchInput.blur();
+        }
+    });
+    
+    // Đóng khi click ra ngoài
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.style.display = 'none';
+        }
+    });
+    
+    // Focus hiện lại kết quả
+    searchInput.addEventListener('focus', function() {
+        if (this.value.trim()) {
+            performSearch(this.value.trim());
+        }
+    });
+    
+    // Phím tắt Ctrl+K để focus vào search
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            searchInput.focus();
+            searchInput.select();
+        }
+    });
+});
+</script>

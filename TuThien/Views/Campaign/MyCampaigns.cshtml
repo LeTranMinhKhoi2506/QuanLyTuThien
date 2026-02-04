@@ -1,92 +1,198 @@
-@model TuThien.Models.MyCampaignsViewModel
+@model List<TuThien.Models.Campaign>
 @{
     ViewData["Title"] = "Chiến dịch của tôi";
-    Layout = "~/Views/Shared/_CampaignLayout.cshtml";
-}
-
-@functions {
-    string GetStatusBadge(string status)
-    {
-        return status switch
-        {
-            "pending_approval" => "<span class='badge bg-warning text-dark'>Chờ xét duyệt</span>",
-            "approved" or "active" => "<span class='badge bg-success'>Đang quyên góp</span>",
-            "rejected" => "<span class='badge bg-danger'>Bị từ chối</span>",
-            "completed" => "<span class='badge bg-secondary'>Đã kết thúc</span>",
-            "draft" => "<span class='badge bg-info'>Nháp</span>",
-            _ => $"<span class='badge bg-light text-dark'>{status}</span>"
-        };
-    }
 }
 
 <div class="container py-5">
-    <h1 class="mb-4 fw-bold">Chiến dịch của tôi</h1>
-    <p class="text-muted mb-4">Quản lý các chiến dịch mà bạn là người đại diện.</p>
-
-    @if (!Model.OwnedCampaigns.Any())
-    {
-        <div class="text-center py-5">
-            <i class="bi bi-box2 display-1 text-muted opacity-25"></i>
-            <p class="mt-3 text-muted">Bạn chưa tạo chiến dịch nào với vai trò người đại diện.</p>
-            <a asp-action="Create" asp-controller="Campaign" class="btn btn-success mt-2">Tạo chiến dịch mới</a>
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-4">
+                    <div class="avatar-lg bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
+                        @Context.Session.GetString("Username")?[0].ToString().ToUpper()
+                    </div>
+                    <h5 class="mb-1">@Context.Session.GetString("Username")</h5>
+                    <p class="text-muted small mb-0">@Context.Session.GetString("Email")</p>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="@Url.Action("Profile", "Account")" class="list-group-item list-group-item-action">
+                        <i class="bi bi-person me-2"></i>Tài khoản của tôi
+                    </a>
+                    <a href="/my-campaigns" class="list-group-item list-group-item-action active">
+                        <i class="bi bi-heart me-2"></i>Chiến dịch của tôi
+                    </a>
+                    <a href="/my-donations" class="list-group-item list-group-item-action">
+                        <i class="bi bi-gift me-2"></i>Quyên góp của tôi
+                    </a>
+                </div>
+            </div>
         </div>
-    }
-    else
-    {
-        <div class="row row-cols-1 row-cols-md-3 g-4">
-            @foreach (var item in Model.OwnedCampaigns)
-            {
-                    <div class="col">
-                    <div class="card h-100 shadow-sm border-0 campaign-card">
-                        <div class="position-relative">
-                            <img src="@item.ThumbnailUrl" class="card-img-top" alt="@item.Title" style="height: 200px; object-fit: cover;">
-                            <div class="position-absolute top-0 end-0 m-2">
-                                    @Html.Raw(GetStatusBadge(item.Status))
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <h5 class="card-title text-truncate" title="@item.Title">
-                                <a asp-action="Details" asp-controller="Campaign" asp-route-id="@item.CampaignId" class="text-decoration-none text-dark">
-                                    @item.Title
-                                </a>
-                            </h5>
-                            
-                            <div class="progress mb-2" style="height: 8px;">
-                                @{
-                                    var currentAmount = item.CurrentAmount ?? 0;
-                                    var percentage = item.TargetAmount > 0 ? (currentAmount / item.TargetAmount) * 100 : 0;
-                                    var progressColor = percentage >= 100 ? "bg-success" : "bg-primary";
-                                }
-                                <div class="progress-bar @progressColor" role="progressbar" style="width: @Math.Min(percentage, 100)%"></div>
-                            </div>
-                            <div class="d-flex justify-content-between small text-muted mb-3">
-                                <span>Đạt: @percentage.ToString("0.0")%</span>
-                                <span>Mục tiêu: @item.TargetAmount.ToString("N0") đ</span>
-                            </div>
 
-                            <div class="d-flex gap-2">
-                                <a asp-action="Details" asp-controller="Campaign" asp-route-id="@item.CampaignId" class="btn btn-outline-primary flex-grow-1 rounded-pill">
-                                    Xem
-                                </a>
-                                @if (new[] { "draft", "pending_approval", "rejected" }.Contains(item.Status))
-                                {
-                                    <form asp-action="Delete" asp-controller="Campaign" asp-route-id="@item.CampaignId" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa chiến dịch này không? Hành động này không thể hoàn tác.');">
-                                        <button type="submit" class="btn btn-outline-danger rounded-pill" title="Xóa">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                }
-                            </div>
-                        </div>
+        <!-- Main Content -->
+        <div class="col-lg-9">
+            <!-- Stats -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm text-center py-3">
+                        <div class="display-6 text-primary fw-bold">@ViewBag.TotalCampaigns</div>
+                        <small class="text-muted">Tổng chiến dịch</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm text-center py-3">
+                        <div class="display-6 text-success fw-bold">@ViewBag.ActiveCampaigns</div>
+                        <small class="text-muted">Đang hoạt động</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm text-center py-3">
+                        <div class="display-6 text-info fw-bold">@(((decimal)ViewBag.TotalRaised / 1000000).ToString("N1"))M</div>
+                        <small class="text-muted">Đã quyên góp</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm text-center py-3">
+                        <div class="display-6 text-warning fw-bold">@ViewBag.TotalDonations</div>
+                        <small class="text-muted">Lượt quyên góp</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0">
+                    <i class="bi bi-heart-fill text-danger me-2"></i>Chiến dịch của tôi
+                </h4>
+                <a href="@Url.Action("Create", "Campaign")" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-1"></i>Tạo chiến dịch mới
+                </a>
+            </div>
+
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle me-2"></i>@TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @if (Model.Count == 0)
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-folder-x display-1 text-muted mb-3"></i>
+                        <h5>Bạn chưa có chiến dịch nào</h5>
+                        <p class="text-muted mb-4">Hãy tạo chiến dịch đầu tiên để kêu gọi quyên góp từ cộng đồng!</p>
+                        <a href="@Url.Action("Create", "Campaign")" class="btn btn-primary">
+                            <i class="bi bi-plus-lg me-1"></i>Tạo chiến dịch ngay
+                        </a>
                     </div>
                 </div>
             }
+            else
+            {
+                <div class="row g-4">
+                    @foreach (var campaign in Model)
+                    {
+                        var progress = campaign.TargetAmount > 0 ? (campaign.CurrentAmount ?? 0) / campaign.TargetAmount * 100 : 0;
+                        var statusBadge = campaign.Status switch
+                        {
+                            "pending_approval" => "bg-warning text-dark",
+                            "active" => "bg-success",
+                            "rejected" => "bg-danger",
+                            "completed" => "bg-secondary",
+                            "paused" => "bg-info",
+                            "draft" => "bg-light text-dark",
+                            _ => "bg-secondary"
+                        };
+                        var statusText = campaign.Status switch
+                        {
+                            "pending_approval" => "Chờ duyệt",
+                            "active" => "Đang hoạt động",
+                            "rejected" => "Bị từ chối",
+                            "completed" => "Đã hoàn thành",
+                            "paused" => "Tạm dừng",
+                            "draft" => "Nháp",
+                            _ => campaign.Status
+                        };
+                        
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="position-relative">
+                                    @if (!string.IsNullOrEmpty(campaign.ThumbnailUrl))
+                                    {
+                                        <img src="@campaign.ThumbnailUrl" class="card-img-top" alt="@campaign.Title" style="height: 180px; object-fit: cover;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                                            <i class="bi bi-image display-4 text-muted"></i>
+                                        </div>
+                                    }
+                                    <span class="badge @statusBadge position-absolute top-0 end-0 m-2">
+                                        @statusText
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="card-title mb-2">
+                                        <a href="@Url.Action("Details", "Campaign", new { id = campaign.CampaignId })" class="text-decoration-none text-dark stretched-link">
+                                            @campaign.Title
+                                        </a>
+                                    </h6>
+                                    <p class="small text-muted mb-3">
+                                        <i class="bi bi-folder me-1"></i>@(campaign.Category?.Name ?? "Chưa phân loại")
+                                        <span class="mx-2">•</span>
+                                        <i class="bi bi-calendar me-1"></i>@campaign.CreatedAt?.ToString("dd/MM/yyyy")
+                                    </p>
+                                    
+                                    <!-- Progress -->
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between small mb-1">
+                                            <span class="text-success fw-semibold">@((campaign.CurrentAmount ?? 0).ToString("N0"))đ</span>
+                                            <span class="text-muted">/ @campaign.TargetAmount.ToString("N0")đ</span>
+                                        </div>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-success" style="width: @Math.Min(progress, 100)%"></div>
+                                        </div>
+                                        <div class="d-flex justify-content-between small mt-1">
+                                            <span class="text-muted">@progress.ToString("N0")%</span>
+                                            <span class="text-muted">@(campaign.Donations?.Count ?? 0) lượt quyên góp</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-white border-0 pt-0">
+                                    <div class="d-flex gap-2 position-relative" style="z-index: 2;">
+                                        <a href="@Url.Action("Details", "Campaign", new { id = campaign.CampaignId })" class="btn btn-outline-primary btn-sm flex-fill">
+                                            <i class="bi bi-eye me-1"></i>Xem
+                                        </a>
+                                        @if (campaign.Status == "active" || campaign.Status == "draft")
+                                        {
+                                            <a href="@Url.Action("Edit", "Campaign", new { id = campaign.CampaignId })" class="btn btn-outline-secondary btn-sm flex-fill">
+                                                <i class="bi bi-pencil me-1"></i>Sửa
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
         </div>
-
-        <div class="d-flex justify-content-center mt-5 pb-4">
-            <a asp-action="Create" asp-controller="Campaign" class="btn btn-success btn-lg rounded-pill px-5 shadow-sm hover-elevate">
-                <i class="bi bi-plus-circle-fill me-2"></i>Tạo chiến dịch mới
-            </a>
-        </div>
-    }
+    </div>
 </div>
+
+<style>
+    .avatar-lg {
+        font-weight: 600;
+    }
+    .list-group-item.active {
+        background-color: var(--bs-primary);
+        border-color: var(--bs-primary);
+    }
+    .card .stretched-link ~ .card-footer .btn {
+        position: relative;
+        z-index: 2;
+    }
+</style>
