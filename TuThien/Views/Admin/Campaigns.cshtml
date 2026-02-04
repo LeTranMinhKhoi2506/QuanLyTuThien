@@ -996,29 +996,19 @@ async function editCampaign(id) {
         }
         
         async function rejectCampaign(campaignId) {
-            const { value: note } = await Swal.fire({
+            const result = await Swal.fire({
                 icon: 'warning',
                 title: 'Từ chối chiến dịch',
-                input: 'textarea',
-                inputLabel: 'Lý do từ chối',
-                inputPlaceholder: 'Nhập lý do từ chối chiến dịch...',
-                inputAttributes: {
-                    'aria-label': 'Lý do từ chối'
-                },
+                text: 'Bạn có chắc chắn muốn TỪ CHỐI chiến dịch này?',
                 showCancelButton: true,
                 confirmButtonText: '<i class="bi bi-x-lg me-1"></i>Từ chối',
                 cancelButtonText: 'Hủy',
                 confirmButtonColor: '#dc3545',
                 cancelButtonColor: '#6c757d',
-                reverseButtons: true,
-                inputValidator: (value) => {
-                    if (!value || value.trim() === '') {
-                        return 'Vui lòng nhập lý do từ chối!';
-                    }
-                }
+                reverseButtons: true
             });
 
-            if (!note) return;
+            if (!result.isConfirmed) return;
             
             Swal.fire({
                 title: 'Đang xử lý...',
@@ -1028,7 +1018,7 @@ async function editCampaign(id) {
 
             const formData = new FormData();
             formData.append('campaignId', campaignId);
-            formData.append('note', note);
+            formData.append('note', ''); // Không gửi lý do
             formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
             try {
@@ -1065,29 +1055,19 @@ async function editCampaign(id) {
         }
         
         async function closeCampaign(campaignId) {
-            const { value: note } = await Swal.fire({
+            const result = await Swal.fire({
                 icon: 'warning',
                 title: 'Đóng chiến dịch',
-                input: 'textarea',
-                inputLabel: 'Lý do đóng chiến dịch',
-                inputPlaceholder: 'Nhập lý do đóng chiến dịch...',
-                inputAttributes: {
-                    'aria-label': 'Lý do đóng'
-                },
+                text: 'Bạn có chắc chắn muốn ĐÓNG chiến dịch này?',
                 showCancelButton: true,
                 confirmButtonText: '<i class="bi bi-pause-circle me-1"></i>Đóng chiến dịch',
                 cancelButtonText: 'Hủy',
                 confirmButtonColor: '#ffc107',
                 cancelButtonColor: '#6c757d',
-                reverseButtons: true,
-                inputValidator: (value) => {
-                    if (!value || value.trim() === '') {
-                        return 'Vui lòng nhập lý do đóng chiến dịch!';
-                    }
-                }
+                reverseButtons: true
             });
 
-            if (!note) return;
+            if (!result.isConfirmed) return;
             
             Swal.fire({
                 title: 'Đang xử lý...',
@@ -1097,7 +1077,7 @@ async function editCampaign(id) {
 
             const formData = new FormData();
             formData.append('campaignId', campaignId);
-            formData.append('note', note);
+            formData.append('note', '');
             formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
             try {
