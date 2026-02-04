@@ -29,61 +29,6 @@
             </div>
         </div>
 
-    }
-    else
-    {
-        <div class="row row-cols-1 row-cols-md-3 g-4">
-            @foreach (var item in Model.OwnedCampaigns)
-            {
-                    <div class="col">
-                    <div class="card h-100 shadow-sm border-0 campaign-card">
-                        <div class="position-relative">
-                            <img src="@item.ThumbnailUrl" class="card-img-top" alt="@item.Title" style="height: 200px; object-fit: cover;">
-                            <div class="position-absolute top-0 end-0 m-2">
-                                    @Html.Raw(GetStatusBadge(item.Status))
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <h5 class="card-title text-truncate" title="@item.Title">
-                                <a asp-action="MyDetails" asp-controller="Campaign" asp-route-id="@item.CampaignId" class="text-decoration-none text-dark">
-                                    @item.Title
-                                </a>
-                            </h5>
-                            
-                            <div class="progress mb-2" style="height: 8px;">
-                                @{
-                                    var currentAmount = item.CurrentAmount ?? 0;
-                                    var percentage = item.TargetAmount > 0 ? (currentAmount / item.TargetAmount) * 100 : 0;
-                                    var progressColor = percentage >= 100 ? "bg-success" : "bg-primary";
-                                }
-                                <div class="progress-bar @progressColor" role="progressbar" style="width: @Math.Min(percentage, 100)%"></div>
-                            </div>
-                            <div class="d-flex justify-content-between small text-muted mb-3">
-                                <span>Đạt: @percentage.ToString("0.0")%</span>
-                                <span>Mục tiêu: @item.TargetAmount.ToString("N0") đ</span>
-                            </div>
-
-                            <div class="d-flex gap-2">
-                                <a asp-action="MyDetails" asp-controller="Campaign" asp-route-id="@item.CampaignId" class="btn btn-outline-primary flex-grow-1 rounded-pill">
-                                    Quản lý
-                                </a>
-                                @if (item.Status == "active" || item.Status == "approved")
-                                {
-                                    <a asp-action="CreateUpdate" asp-controller="Campaign" asp-route-id="@item.CampaignId" class="btn btn-success rounded-pill" title="Tạo tin tức">
-                                        <i class="bi bi-newspaper"></i>
-                                    </a>
-                                }
-                                @if (new[] { "draft", "pending_approval", "rejected" }.Contains(item.Status))
-                                {
-                                    <form asp-action="Delete" asp-controller="Campaign" asp-route-id="@item.CampaignId" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa chiến dịch này không? Hành động này không thể hoàn tác.');">
-                                        <button type="submit" class="btn btn-outline-danger rounded-pill" title="Xóa">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                }
-                            </div>
-                        </div>
-
         <!-- Main Content -->
         <div class="col-lg-9">
             <!-- Stats -->
@@ -191,7 +136,7 @@
                                 </div>
                                 <div class="card-body">
                                     <h6 class="card-title mb-2">
-                                        <a href="@Url.Action("Details", "Campaign", new { id = campaign.CampaignId })" class="text-decoration-none text-dark stretched-link">
+                                        <a href="@Url.Action("MyDetails", "Campaign", new { id = campaign.CampaignId })" class="text-decoration-none text-dark stretched-link">
                                             @campaign.Title
                                         </a>
                                     </h6>
@@ -218,7 +163,7 @@
                                 </div>
                                 <div class="card-footer bg-white border-0 pt-0">
                                     <div class="d-flex gap-2 position-relative" style="z-index: 2;">
-                                        <a href="@Url.Action("Details", "Campaign", new { id = campaign.CampaignId })" class="btn btn-outline-primary btn-sm flex-fill">
+                                        <a href="@Url.Action("MyDetails", "Campaign", new { id = campaign.CampaignId })" class="btn btn-outline-primary btn-sm flex-fill">
                                             <i class="bi bi-eye me-1"></i>Xem
                                         </a>
                                         @if (campaign.Status == "active" || campaign.Status == "draft")
