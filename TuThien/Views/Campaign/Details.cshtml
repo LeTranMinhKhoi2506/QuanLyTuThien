@@ -214,11 +214,49 @@
                                     <div class="documents-list">
                                         @foreach (var doc in Model.CampaignDocuments)
                                         {
-                                            <a href="@doc.FileUrl" target="_blank" class="document-item">
-                                                <i class="bi bi-file-earmark-pdf me-2"></i>
-                                                <span>@(doc.Description ?? "Tài liệu")</span>
-                                                <i class="bi bi-download ms-auto"></i>
-                                            </a>
+                                            @if (doc.FileType?.ToLower() == "image")
+                                            {
+                                                <!-- Hiển thị ảnh trực tiếp -->
+                                                <div class="document-image-item mb-3">
+                                                    <img src="@doc.FileUrl" 
+                                                         alt="@(doc.Description ?? "Hình ảnh tài liệu")" 
+                                                         class="img-fluid rounded shadow-sm"
+                                                         onerror="this.src='@Url.Content("~/Images/DefaultPic.png")'" />
+                                                    @if (!string.IsNullOrEmpty(doc.Description))
+                                                    {
+                                                        <p class="text-muted mt-2 mb-0">
+                                                            <i class="bi bi-image me-2"></i>@doc.Description
+                                                        </p>
+                                                    }
+                                                </div>
+                                            }
+                                            else if (doc.FileType?.ToLower() == "pdf")
+                                            {
+                                                <!-- Link tải PDF -->
+                                                <a href="@doc.FileUrl" target="_blank" class="document-item">
+                                                    <i class="bi bi-file-earmark-pdf me-2 text-danger"></i>
+                                                    <span>@(doc.Description ?? "Tài liệu PDF")</span>
+                                                    <i class="bi bi-download ms-auto"></i>
+                                                </a>
+                                            }
+                                            else if (doc.FileType?.ToLower() == "doc")
+                                            {
+                                                <!-- Link tải Word/Doc -->
+                                                <a href="@doc.FileUrl" target="_blank" class="document-item">
+                                                    <i class="bi bi-file-earmark-word me-2 text-primary"></i>
+                                                    <span>@(doc.Description ?? "Tài liệu Word")</span>
+                                                    <i class="bi bi-download ms-auto"></i>
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <!-- File khác -->
+                                                <a href="@doc.FileUrl" target="_blank" class="document-item">
+                                                    <i class="bi bi-file-earmark me-2"></i>
+                                                    <span>@(doc.Description ?? "Tài liệu")</span>
+                                                    <i class="bi bi-download ms-auto"></i>
+                                                </a>
+                                            }
                                         }
                                     </div>
                                 </div>
