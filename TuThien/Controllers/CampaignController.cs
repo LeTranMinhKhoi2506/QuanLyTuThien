@@ -23,9 +23,10 @@ namespace TuThien.Controllers
         }
 
         // GET: Campaign/Index
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? categoryId)
         {
             var categories = await _context.Categories.ToListAsync();
+            ViewBag.SelectedCategoryId = categoryId;
             return View(categories);
         }
 

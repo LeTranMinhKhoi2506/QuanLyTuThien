@@ -72,7 +72,7 @@
                     <label class="form-label fw-bold">Trạng thái</label>
                     <select name="status" class="form-select">
                         <option value="">Tất cả</option>
-                        <option value="completed" selected="@(ViewBag.Status == "completed")">Thành công</option>
+                        <option value="success" selected="@(ViewBag.Status == "success")">Thành công</option>
                         <option value="pending" selected="@(ViewBag.Status == "pending")">Đang xử lý</option>
                         <option value="failed" selected="@(ViewBag.Status == "failed")">Thất bại</option>
                     </select>
@@ -97,7 +97,7 @@
             {
                 var statusClass = donation.PaymentStatus switch
                 {
-                    "completed" => "status-completed",
+                    "success" => "status-success",
                     "pending" => "status-pending",
                     "failed" => "status-failed",
                     _ => ""
@@ -105,7 +105,7 @@
                 
                 var statusText = donation.PaymentStatus switch
                 {
-                    "completed" => "Thành công",
+                    "success" => "Thành công",
                     "pending" => "Đang xử lý",
                     "failed" => "Thất bại",
                     _ => donation.PaymentStatus
@@ -113,7 +113,7 @@
                 
                 var statusIcon = donation.PaymentStatus switch
                 {
-                    "completed" => "bi-check-circle-fill",
+                    "success" => "bi-check-circle-fill",
                     "pending" => "bi-clock-fill",
                     "failed" => "bi-x-circle-fill",
                     _ => "bi-question-circle-fill"
@@ -204,11 +204,11 @@
 
                     <div class="donation-footer">
                         <div class="donation-actions">
-                            <a href="@Url.Action("Details", "TrangChu", new { id = donation.CampaignId })" 
+                            <a href="@Url.Action("Details", "Campaign", new { id = donation.CampaignId })" 
                                class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-eye me-1"></i>Xem chiến dịch
                             </a>
-                            @if (donation.PaymentStatus == "completed")
+                            @if (donation.PaymentStatus == "success")
                             {
                                 <button class="btn btn-sm btn-outline-secondary" 
                                         onclick="printReceipt('@donation.TransactionCode')">

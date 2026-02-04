@@ -16,10 +16,43 @@
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Chọn chiến dịch</h5>
                 </div>
-                <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
+                
+                <!-- Search & Filter -->
+                <div class="card-body border-bottom pb-3">
+                    <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="campaignSearch" placeholder="Tìm kiếm chiến dịch...">
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch" title="Xóa tìm kiếm">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <select class="form-select form-select-sm" id="categoryFilter">
+                        <option value="">Tất cả danh mục</option>
+                        @{
+                            var categories = campaigns.Where(c => c.Category != null)
+                                                     .Select(c => c.Category)
+                                                     .DistinctBy(c => c.CategoryId)
+                                                     .OrderBy(c => c.Name);
+                        }
+                        @foreach (var cat in categories)
+                        {
+                            <option value="@cat.Name">@cat.Name</option>
+                        }
+                    </select>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <small class="text-muted">
+                            <span id="filteredCount">@campaigns.Count</span> / @campaigns.Count chiến dịch
+                        </small>
+                        <button class="btn btn-link btn-sm p-0 text-decoration-none" id="resetFilters">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Đặt lại
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card-body p-0" style="max-height: 450px; overflow-y: auto;" id="campaignListContainer">
                     @if (campaigns.Any())
                     {
-                        <div class="list-group list-group-flush">
+                        <div class="list-group list-group-flush" id="campaignList">
                             @foreach (var campaign in campaigns)
                             {
                                 var isSelected = selectedCampaign?.CampaignId == campaign.CampaignId;
@@ -32,11 +65,12 @@
                                    data-campaign-title="@campaign.Title"
                                    data-campaign-current="@campaign.CurrentAmount"
                                    data-campaign-target="@campaign.TargetAmount"
-                                   data-campaign-percent="@percent.ToString("F1")">
+                                   data-campaign-percent="@percent.ToString("F1")"
+                                   data-campaign-category="@campaign.Category?.Name">
                                     <div class="d-flex w-100 justify-content-between align-items-start">
                                         <div class="flex-grow-1">
-                                            <h6 class="mb-1 text-truncate" style="max-width: 200px;">@campaign.Title</h6>
-                                            <small class="@(isSelected ? "text-white-50" : "text-muted")">
+                                            <h6 class="mb-1 campaign-title-text" style="max-width: 200px;">@campaign.Title</h6>
+                                            <small class="campaign-category @(isSelected ? "text-white-50" : "text-muted")">
                                                 <i class="bi bi-tag me-1"></i>@campaign.Category?.Name
                                             </small>
                                         </div>
@@ -49,6 +83,13 @@
                                     </small>
                                 </a>
                             }
+                        </div>
+                        
+                        <!-- No results message -->
+                        <div class="p-4 text-center text-muted d-none" id="noResultsMessage">
+                            <i class="bi bi-search display-4"></i>
+                            <p class="mt-2 mb-0">Không tìm thấy chiến dịch phù hợp</p>
+                            <button class="btn btn-link btn-sm" id="clearFiltersBtn">Xóa bộ lọc</button>
                         </div>
                     }
                     else
@@ -409,6 +450,99 @@
 
             // Initial validation
             validateForm();
+
+            // ============ Campaign Search & Filter ============
+            const $campaignSearch = $('#campaignSearch');
+            const $categoryFilter = $('#categoryFilter');
+            const $campaignItems = $('.campaign-item');
+            const $filteredCount = $('#filteredCount');
+            const $noResultsMessage = $('#noResultsMessage');
+            const $campaignList = $('#campaignList');
+            const totalCampaigns = $campaignItems.length;
+
+            function filterCampaigns() {
+                const searchTerm = $campaignSearch.val().toLowerCase().trim();
+                const selectedCategory = $categoryFilter.val();
+                let visibleCount = 0;
+
+                $campaignItems.each(function() {
+                    const $item = $(this);
+                    const title = $item.data('campaign-title')?.toString().toLowerCase() || '';
+                    const category = $item.data('campaign-category') || '';
+
+                    const matchesSearch = !searchTerm || title.includes(searchTerm);
+                    const matchesCategory = !selectedCategory || category === selectedCategory;
+
+                    if (matchesSearch && matchesCategory) {
+                        $item.removeClass('d-none');
+                        visibleCount++;
+                    } else {
+                        $item.addClass('d-none');
+                    }
+                });
+
+                // Update count
+                $filteredCount.text(visibleCount);
+
+                // Show/hide no results message
+                if (visibleCount === 0 && totalCampaigns > 0) {
+                    $noResultsMessage.removeClass('d-none');
+                    $campaignList.addClass('d-none');
+                } else {
+                    $noResultsMessage.addClass('d-none');
+                    $campaignList.removeClass('d-none');
+                }
+            }
+
+            // Search input with debounce
+            let searchTimeout;
+            $campaignSearch.on('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(filterCampaigns, 200);
+            });
+
+            // Category filter
+            $categoryFilter.on('change', filterCampaigns);
+
+            // Clear search button
+            $('#clearSearch').on('click', function() {
+                $campaignSearch.val('');
+                filterCampaigns();
+                $campaignSearch.focus();
+            });
+
+            // Reset filters
+            $('#resetFilters, #clearFiltersBtn').on('click', function() {
+                $campaignSearch.val('');
+                $categoryFilter.val('');
+                filterCampaigns();
+            });
+
+            // Highlight search term in campaign title
+            function highlightSearchTerm() {
+                const searchTerm = $campaignSearch.val().trim();
+                $campaignItems.each(function() {
+                    const $item = $(this);
+                    const $titleEl = $item.find('.campaign-title-text');
+                    const originalTitle = $item.data('campaign-title');
+                    
+                    if (searchTerm && originalTitle.toLowerCase().includes(searchTerm.toLowerCase())) {
+                        const regex = new RegExp(`(${searchTerm})`, 'gi');
+                        const highlighted = originalTitle.replace(regex, '<mark>$1</mark>');
+                        $titleEl.html(highlighted);
+                    } else {
+                        $titleEl.text(originalTitle);
+                    }
+                });
+            }
+
+            $campaignSearch.on('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(function() {
+                    filterCampaigns();
+                    highlightSearchTerm();
+                }, 200);
+            });
         });
     </script>
 }
@@ -435,5 +569,52 @@
     
     .amount-btn {
         font-weight: 600;
+    }
+    
+    /* Campaign search & filter styles */
+    #campaignListContainer {
+        scrollbar-width: thin;
+        scrollbar-color: #ccc #f8f9fa;
+    }
+    
+    #campaignListContainer::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    #campaignListContainer::-webkit-scrollbar-track {
+        background: #f8f9fa;
+    }
+    
+    #campaignListContainer::-webkit-scrollbar-thumb {
+        background-color: #ccc;
+        border-radius: 3px;
+    }
+    
+    #campaignListContainer::-webkit-scrollbar-thumb:hover {
+        background-color: #aaa;
+    }
+    
+    .campaign-item.d-none {
+        display: none !important;
+    }
+    
+    .campaign-title-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .campaign-title-text mark {
+        background-color: #fff3cd;
+        padding: 0 2px;
+        border-radius: 2px;
+    }
+    
+    #clearSearch {
+        border-left: none;
+    }
+    
+    #clearSearch:hover {
+        background-color: #e9ecef;
     }
 </style>

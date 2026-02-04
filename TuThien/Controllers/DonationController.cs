@@ -141,18 +141,22 @@ public class DonationController : Controller
 
         // Calculate statistics
         var totalDonated = await _context.Donations
-            .Where(d => d.UserId == userId.Value && d.PaymentStatus == "completed")
+            .Where(d => d.UserId == userId.Value && d.PaymentStatus == "success")
             .SumAsync(d => (decimal?)d.Amount) ?? 0;
 
         var totalCampaigns = await _context.Donations
-            .Where(d => d.UserId == userId.Value && d.PaymentStatus == "completed")
+            .Where(d => d.UserId == userId.Value && d.PaymentStatus == "success")
             .Select(d => d.CampaignId)
             .Distinct()
             .CountAsync();
 
+        var totalDonations = await _context.Donations
+            .Where(d => d.UserId == userId.Value && d.PaymentStatus == "success")
+            .CountAsync();
+
         ViewBag.TotalDonated = totalDonated;
         ViewBag.TotalCampaigns = totalCampaigns;
-        ViewBag.TotalDonations = await query.CountAsync();
+        ViewBag.TotalDonations = totalDonations;
         ViewBag.CurrentPage = page;
         ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
         ViewBag.Status = status;
