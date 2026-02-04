@@ -109,7 +109,16 @@
                             <td>
                                 @if (donation.IsAnonymous == true)
                                 {
-                                    <span class="text-muted"><i class="bi bi-incognito me-1"></i>Ẩn danh</span>
+                                    <div>
+                                        <span class="text-muted"><i class="bi bi-incognito me-1"></i>Ẩn danh</span>
+                                        @if (donation.User != null)
+                                        {
+                                            <br/>
+                                            <small class="text-info" title="Chỉ Admin thấy">
+                                                <i class="bi bi-eye me-1"></i>@donation.User.Username
+                                            </small>
+                                        }
+                                    </div>
                                 }
                                 else
                                 {
@@ -144,14 +153,14 @@
                                 @{
                                     var statusBadge = donation.PaymentStatus switch
                                     {
-                                        "completed" => "bg-success",
+                                        "success" => "bg-success",
                                         "pending" => "bg-warning text-dark",
                                         "failed" => "bg-danger",
                                         _ => "bg-secondary"
                                     };
                                     var statusText = donation.PaymentStatus switch
                                     {
-                                        "completed" => "Thành công",
+                                        "success" => "Thành công",
                                         "pending" => "Đang xử lý",
                                         "failed" => "Thất bại",
                                         _ => donation.PaymentStatus

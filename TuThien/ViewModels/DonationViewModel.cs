@@ -94,6 +94,11 @@ public class DonationResponseViewModel
     public string? PaymentMethod { get; set; }
     public string? RedirectUrl { get; set; }
     public BankTransferInfoViewModel? BankInfo { get; set; }
+    
+    /// <summary>
+    /// Cho biết người dùng cần đăng nhập để tiếp tục
+    /// </summary>
+    public bool RequireLogin { get; set; }
 }
 
 /// <summary>
