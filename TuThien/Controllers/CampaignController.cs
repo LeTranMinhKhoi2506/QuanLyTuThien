@@ -25,15 +25,16 @@ namespace TuThien.Controllers
         }
 
         // GET: Campaign/Index
-        public async Task<IActionResult> Index(int? categoryId)
+        public async Task<IActionResult> Index(int? categoryId, string? search)
         {
             var categories = await _context.Categories.ToListAsync();
             ViewBag.SelectedCategoryId = categoryId;
+            ViewBag.SearchQuery = search;
             return View(categories);
         }
 
         // GET: Campaign/GetCampaigns - Lấy campaigns theo category (dùng cho AJAX/Partial View)
-        public async Task<IActionResult> GetCampaigns(int? categoryId)
+        public async Task<IActionResult> GetCampaigns(int? categoryId, string? search)
         {
             var query = _context.Campaigns
                 .Where(c => c.Status == "active" || c.Status == "approved") // Show active/approved campaigns
@@ -43,6 +44,14 @@ namespace TuThien.Controllers
             if (categoryId.HasValue)
             {
                 query = query.Where(c => c.CategoryId == categoryId.Value);
+            }
+
+            // Search filter
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchTerm = search.Trim().ToLower();
+                query = query.Where(c => c.Title.ToLower().Contains(searchTerm) || 
+                                        (c.Description != null && c.Description.ToLower().Contains(searchTerm)));
             }
 
             // Sort by Amount Donated (High to Low)

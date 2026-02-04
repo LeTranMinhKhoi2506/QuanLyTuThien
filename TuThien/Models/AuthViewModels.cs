@@ -49,4 +49,12 @@ namespace TuThien.Models
         [Display(Name = "S? ?i?n tho?i")]
         public string? PhoneNumber { get; set; }
     }
+
+    public class ForgotPasswordViewModel
+    {
+        [Required(ErrorMessage = "Vui lòng nh?p email")]
+        [EmailAddress(ErrorMessage = "Email không h?p l?")]
+        [Display(Name = "Email")]
+        public string Email { get; set; } = null!;
+    }
 }

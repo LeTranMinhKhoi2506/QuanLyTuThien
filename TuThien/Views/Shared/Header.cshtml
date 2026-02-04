@@ -82,7 +82,7 @@
                             <i class="bi bi-search text-muted"></i>
                         </span>
                         <input class="form-control border-start-0 ps-0" type="search" id="quickSearchInput" 
-                               placeholder="Tìm kiếm nhanh..." aria-label="Tìm kiếm" autocomplete="off" />
+                               placeholder="Tìm kiếm chiến dịch..." aria-label="Tìm kiếm" autocomplete="off" />
                     </div>
                     <div id="quickSearchResults" class="dropdown-menu w-100 shadow-lg" style="display: none; max-height: 400px; overflow-y: auto;">
                         <!-- Results will be populated by JS -->
@@ -405,8 +405,116 @@ document.addEventListener('DOMContentLoaded', function() {
     let searchTimeout;
     searchInput.addEventListener('input', function() {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => performSearch(this.value.trim()), 150);
+        const query = this.value.trim();
+        
+        if (query.length === 0) {
+            searchResults.style.display = 'none';
+            return;
+        }
+        
+        if (query.length < 2) {
+            searchResults.innerHTML = '<div class="text-center py-3 text-muted small">Nhập ít nhất 2 ký tự để tìm kiếm</div>';
+            searchResults.style.display = 'block';
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            searchCampaigns(query);
+        }, 300);
     });
+    
+    // Tìm kiếm chiến dịch qua API
+    async function searchCampaigns(query) {
+        try {
+            searchResults.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>';
+            searchResults.style.display = 'block';
+            
+            const response = await fetch(`/api/campaigns/search?q=${encodeURIComponent(query)}&limit=5`);
+            const data = await response.json();
+            
+            if (!data.success || !data.campaigns || data.campaigns.length === 0) {
+                searchResults.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="bi bi-search display-6 d-block mb-2 text-muted"></i>
+                        <span class="text-muted">Không tìm thấy chiến dịch nào</span>
+                    </div>
+                    <div class="px-3 py-2 border-top">
+                        <a href="/Campaign?search=${encodeURIComponent(query)}" class="btn btn-outline-primary btn-sm w-100">
+                            <i class="bi bi-search me-1"></i>Xem tất cả kết quả
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div class="search-category">Chiến dịch</div>';
+            let itemIndex = 0;
+            
+            data.campaigns.forEach(campaign => {
+                const statusColor = campaign.status === 'active' ? 'success' : 'secondary';
+                const statusText = campaign.status === 'active' ? 'Đang hoạt động' : 'Đã kết thúc';
+                const progress = campaign.targetAmount > 0 
+                    ? Math.round((campaign.currentAmount / campaign.targetAmount) * 100) 
+                    : 0;
+                
+                html += `
+                    <div class="search-item" data-index="${itemIndex}" data-url="/Campaign/Details/${campaign.campaignId}">
+                        <div class="search-icon bg-${statusColor} bg-opacity-10 text-${statusColor}">
+                            <i class="bi bi-megaphone"></i>
+                        </div>
+                        <div class="search-info">
+                            <div class="search-title">${highlightMatch(campaign.title, query)}</div>
+                            <div class="search-desc">
+                                <span class="badge bg-${statusColor} bg-opacity-10 text-${statusColor} me-1" style="font-size: 10px;">${statusText}</span>
+                                <span class="text-muted" style="font-size: 11px;">${progress}% - ${formatMoney(campaign.currentAmount)}đ</span>
+                            </div>
+                        </div>
+                        <span class="search-shortcut">Enter</span>
+                    </div>
+                `;
+                itemIndex++;
+            });
+            
+            // Thêm link xem tất cả
+            html += `
+                <div class="px-3 py-2 border-top bg-light">
+                    <a href="/Campaign?search=${encodeURIComponent(query)}" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-search me-1"></i>Xem tất cả ${data.totalCount} kết quả
+                    </a>
+                </div>
+            `;
+            
+            searchResults.innerHTML = html;
+            searchResults.style.display = 'block';
+            selectedIndex = -1;
+            
+            // Gắn sự kiện click
+            document.querySelectorAll('.search-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    window.location.href = this.dataset.url;
+                });
+            });
+            
+        } catch (error) {
+            console.error('Search error:', error);
+            searchResults.innerHTML = `
+                <div class="text-center py-4 text-danger">
+                    <i class="bi bi-exclamation-circle"></i>
+                    <span class="d-block mt-2 small">Có lỗi xảy ra khi tìm kiếm</span>
+                </div>
+            `;
+        }
+    }
+    
+    // Format money
+    function formatMoney(amount) {
+        if (amount >= 1000000) {
+            return (amount / 1000000).toFixed(1) + 'M';
+        } else if (amount >= 1000) {
+            return (amount / 1000).toFixed(0) + 'K';
+        }
+        return amount.toString();
+    }
     
     // Sự kiện phím
     searchInput.addEventListener('keydown', function(e) {

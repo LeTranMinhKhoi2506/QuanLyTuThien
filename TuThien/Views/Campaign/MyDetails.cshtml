@@ -612,25 +612,7 @@
                 </div>
 
                 <!-- Management Actions -->
-                <div class="management-card mt-3">
-                    <h6 class="card-title">
-                        <i class="bi bi-gear me-2"></i>Quản lý
-                    </h6>
-                    <div class="d-grid gap-2">
-                        <a href="@Url.Action("Edit", "Campaign", new { id = Model.CampaignId })" class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-pencil me-2"></i>Chỉnh sửa chiến dịch
-                        </a>
-                        <a href="@Url.Action("CreateUpdate", "Campaign", new { id = Model.CampaignId })" class="btn btn-outline-success btn-sm">
-                            <i class="bi bi-newspaper me-2"></i>Tạo tin tức
-                        </a>
-                        <a href="@Url.Action("ManageUpdates", "Campaign", new { id = Model.CampaignId })" class="btn btn-outline-info btn-sm">
-                            <i class="bi bi-megaphone me-2"></i>Quản lý cập nhật
-                        </a>
-                        <a href="@Url.Action("ExportDonations", "Campaign", new { id = Model.CampaignId })" class="btn btn-outline-success btn-sm">
-                            <i class="bi bi-file-earmark-excel me-2"></i>Xuất danh sách quyên góp
-                        </a>
-                    </div>
-                </div>
+                
             </div>
         </div>
     </div>

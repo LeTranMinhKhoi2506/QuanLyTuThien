@@ -14,6 +14,7 @@ public interface IEmailService
     Task SendThankYouEmailAsync(string toEmail, string donorName, string campaignTitle, decimal amount);
     Task SendCampaignApprovedEmailAsync(string toEmail, string creatorName, string campaignTitle);
     Task SendDisbursementApprovedEmailAsync(string toEmail, string requesterName, decimal amount);
+    Task SendPasswordResetEmailAsync(string toEmail, string userName, string verificationCode);
 }
 
 public class EmailService : IEmailService
@@ -158,6 +159,40 @@ public class EmailService : IEmailService
                     <p>Yêu cầu giải ngân <strong>{amountFormatted} VNĐ</strong> của bạn đã được phê duyệt.</p>
                     
                     <p>Số tiền sẽ được chuyển vào tài khoản của bạn trong vòng 1-3 ngày làm việc.</p>
+                    
+                    <p>Trân trọng,<br/>Đội ngũ Từ Thiện</p>
+                </div>
+            </body>
+            </html>";
+
+        await SendEmailAsync(toEmail, subject, body);
+    }
+
+    /// <summary>
+    /// Gửi email chứa mã xác nhận đặt lại mật khẩu
+    /// </summary>
+    public async Task SendPasswordResetEmailAsync(string toEmail, string userName, string verificationCode)
+    {
+        var subject = "Mã xác nhận đặt lại mật khẩu";
+        var body = $@"
+            <html>
+            <body style='font-family: Arial, sans-serif; line-height: 1.6;'>
+                <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                    <h2 style='color: #2c5e2e;'>Xin chào {userName},</h2>
+                    
+                    <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản của mình.</p>
+                    
+                    <div style='background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;'>
+                        <p style='margin: 0 0 10px 0; font-size: 14px; color: #6c757d;'>Mã xác nhận của bạn là:</p>
+                        <h1 style='margin: 0; color: #007bff; font-size: 36px; letter-spacing: 5px;'>{verificationCode}</h1>
+                        <p style='margin: 10px 0 0 0; font-size: 12px; color: #6c757d;'>Mã có hiệu lực trong 15 phút</p>
+                    </div>
+                    
+                    <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+                    
+                    <div style='background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;'>
+                        <p style='margin: 0; color: #856404;'><strong>⚠️ Lưu ý:</strong> Không chia sẻ mã này với bất kỳ ai!</p>
+                    </div>
                     
                     <p>Trân trọng,<br/>Đội ngũ Từ Thiện</p>
                 </div>
