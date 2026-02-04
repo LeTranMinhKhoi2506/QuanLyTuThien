@@ -22,6 +22,38 @@ namespace TuThien.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
+        // GET: Campaign/ByCategory/1
+        [HttpGet("campaigns/category/{id}")]
+        public async Task<IActionResult> ByCategory(int id, int page = 1, int pageSize = 12)
+        {
+            var category = await _context.Categories.FindAsync(id);
+            if (category == null)
+            {
+                return NotFound();
+            }
+
+            var query = _context.Campaigns
+                .Where(c => c.CategoryId == id && c.Status == "active")
+                .Include(c => c.Category)
+                .Include(c => c.Creator)
+                .OrderByDescending(c => c.CreatedAt);
+
+            var totalItems = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            var campaigns = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            ViewBag.Category = category;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+
+            return View(campaigns);
+        }
+
         // GET: Campaign/Details/5
         [HttpGet]
         public async Task<IActionResult> Details(int id)

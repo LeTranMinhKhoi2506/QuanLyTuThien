@@ -1,0 +1,151 @@
+﻿@model List<TuThien.Models.Campaign>
+
+@{
+    ViewData["Title"] = ViewBag.Category.Name;
+    var category = ViewBag.Category as TuThien.Models.Category;
+    Layout = "~/Views/Shared/MainLayout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/TrangChu.css" asp-append-version="true" />
+
+<div class="page-campaigns-by-category">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@category.Name</li>
+        </ol>
+    </nav>
+
+    <!-- Category Header -->
+    <div class="category-page-header mb-5">
+        <div class="d-flex align-items-center mb-3">
+            <div class="category-icon-large me-4">
+                <i class="bi bi-folder-fill" style="font-size: 3rem; color: var(--primary-color);"></i>
+            </div>
+            <div>
+                <h1 class="mb-2">@category.Name</h1>
+                @if (!string.IsNullOrEmpty(category.Description))
+                {
+                    <p class="text-muted mb-0">@category.Description</p>
+                }
+                <p class="text-muted mt-2">
+                    <i class="bi bi-bookmark-star me-2"></i>
+                    <strong>@ViewBag.TotalItems</strong> chiến dịch đang hoạt động
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Campaigns Grid -->
+    @if (Model.Any())
+    {
+        <div class="row g-4">
+            @foreach (var camp in Model)
+            {
+                var thumb = string.IsNullOrEmpty(camp.ThumbnailUrl) ? Url.Content("~/Images/DefaultPic.png") : camp.ThumbnailUrl;
+                decimal current = camp.CurrentAmount ?? 0m;
+                decimal target = camp.TargetAmount;
+                int percent = target > 0 ? (int)System.Math.Min(100, System.Math.Round((current / target) * 100)) : 0;
+                
+                <div class="col-lg-3 col-md-4 col-sm-6">
+                    <div class="campaign-card h-100" data-campaign-id="@camp.CampaignId">
+                        <div class="campaign-image-wrapper">
+                            <img src="@thumb" class="campaign-image" alt="@camp.Title" onerror="this.src='@Url.Content("~/Images/DefaultPic.png")'" />
+                            <div class="campaign-badge">
+                                <span class="badge bg-primary">@category.Name</span>
+                            </div>
+                        </div>
+                        
+                        <div class="campaign-content">
+                            <h5 class="campaign-title">@camp.Title</h5>
+                            <p class="campaign-description">
+                                @{
+                                    var desc = camp.Description ?? "";
+                                    // Remove HTML tags
+                                    desc = System.Text.RegularExpressions.Regex.Replace(desc, "<.*?>", "");
+                                    var excerpt = desc.Length > 100 ? desc.Substring(0, 100) + "..." : desc;
+                                }
+                                @excerpt
+                            </p>
+
+                            <div class="campaign-progress mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="progress-label">Tiến độ</span>
+                                    <span class="progress-percentage">@percent%</span>
+                                </div>
+                                <div class="progress campaign-progress-bar">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width:@percent%;" aria-valuenow="@percent" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <span class="amount-raised">
+                                        <strong>@String.Format("{0:N0}", current) ₫</strong>
+                                    </span>
+                                    <span class="amount-target text-muted">
+                                        Mục tiêu: @String.Format("{0:N0}", target) ₫
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="campaign-footer">
+                                <a class="btn btn-primary btn-donate w-100" href="@Url.Action("Details", "Campaign", new { id = camp.CampaignId })">
+                                    <i class="bi bi-heart-fill me-2"></i>Quyên góp ngay
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        @if (ViewBag.TotalPages > 1)
+        {
+            <nav aria-label="Page navigation" class="mt-5">
+                <ul class="pagination justify-content-center">
+                    @if (ViewBag.CurrentPage > 1)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="?page=@(ViewBag.CurrentPage - 1)">
+                                <i class="bi bi-chevron-left"></i> Trước
+                            </a>
+                        </li>
+                    }
+
+                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="?page=@i">@i</a>
+                        </li>
+                    }
+
+                    @if (ViewBag.CurrentPage < ViewBag.TotalPages)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="?page=@(ViewBag.CurrentPage + 1)">
+                                Sau <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    }
+    else
+    {
+        <div class="empty-state text-center py-5">
+            <div class="empty-icon mb-3">
+                <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+            </div>
+            <h4 class="text-muted">Chưa có chiến dịch nào trong danh mục này</h4>
+            <p class="text-muted">Vui lòng quay lại sau để xem các chiến dịch mới.</p>
+            <a href="/" class="btn btn-primary mt-3">
+                <i class="bi bi-arrow-left me-2"></i>Quay lại trang chủ
+            </a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/trangchu.js" asp-append-version="true"></script>
+}
