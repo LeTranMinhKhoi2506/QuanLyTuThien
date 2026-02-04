@@ -15,6 +15,7 @@ let validationState = {
     dates: true
 };
 let checkTitleTimer;
+let uploadedImageFile = null; // Store uploaded file
 
 // API URLs (will be set from view)
 let apiUrls = {
@@ -26,7 +27,8 @@ let apiUrls = {
     delete: '',
     approve: '',
     reject: '',
-    close: ''
+    close: '',
+    uploadImage: '' // Add upload endpoint
 };
 
 /**
@@ -416,6 +418,10 @@ function showCreateCampaignModal() {
     document.getElementById('campaignId').value = '0';
     document.getElementById('statusRow').style.display = 'none';
     document.getElementById('campaignStartDate').value = new Date().toISOString().split('T')[0];
+    
+    // Reset image upload
+    removeCampaignImage();
+    
     resetValidationState();
     campaignModal.show();
 }
@@ -438,10 +444,18 @@ async function editCampaign(id) {
             document.getElementById('campaignCategory').value = c.categoryId || '';
             document.getElementById('campaignStartDate').value = c.startDate || '';
             document.getElementById('campaignEndDate').value = c.endDate || '';
-            document.getElementById('campaignThumbnail').value = c.thumbnailUrl || '';
+            document.getElementById('campaignThumbnailUrl').value = c.thumbnailUrl || '';
             document.getElementById('campaignExcessOption').value = c.excessFundOption || 'next_case';
             document.getElementById('campaignStatus').value = c.status || 'active';
             document.getElementById('statusRow').style.display = 'flex';
+            
+            // Show existing image
+            if (c.thumbnailUrl) {
+                document.getElementById('thumbnailPreviewImg').src = c.thumbnailUrl;
+                document.getElementById('thumbnailPreview').style.display = 'block';
+            } else {
+                removeCampaignImage();
+            }
             
             validateTitle(c.title);
             validateDescription(c.description);
@@ -502,9 +516,15 @@ async function saveCampaign() {
     const endDate = document.getElementById('campaignEndDate').value;
     if (startDate) formData.append('startDate', startDate);
     if (endDate) formData.append('endDate', endDate);
-        
-    const thumbnail = document.getElementById('campaignThumbnail').value;
-    if (thumbnail) formData.append('thumbnailUrl', thumbnail);
+    
+    // Handle image upload
+    if (uploadedImageFile) {
+        formData.append('thumbnailImage', uploadedImageFile);
+    } else {
+        // Use existing URL if no new file uploaded
+        const existingUrl = document.getElementById('campaignThumbnailUrl').value;
+        if (existingUrl) formData.append('thumbnailUrl', existingUrl);
+    }
         
     formData.append('excessFundOption', document.getElementById('campaignExcessOption').value);
         
@@ -688,4 +708,62 @@ async function closeCampaign(campaignId) {
     } catch (error) {
         Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: 'Đã xảy ra lỗi, vui lòng thử lại', confirmButtonColor: '#dc3545' });
     }
+}
+
+// ============== IMAGE UPLOAD FUNCTIONS ==============
+
+/**
+ * Preview campaign image before upload
+ */
+function previewCampaignImage(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!validTypes.includes(file.type)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Định dạng không hợp lệ',
+                text: 'Vui lòng chọn file ảnh JPG hoặc PNG',
+                confirmButtonColor: '#dc3545'
+            });
+            input.value = '';
+            return;
+        }
+        
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            Swal.fire({
+                icon: 'error',
+                title: 'File quá lớn',
+                text: 'Kích thước ảnh không được vượt quá 5MB',
+                confirmButtonColor: '#dc3545'
+            });
+            input.value = '';
+            return;
+        }
+        
+        // Store file for upload
+        uploadedImageFile = file;
+        
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('thumbnailPreviewImg').src = e.target.result;
+            document.getElementById('thumbnailPreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+/**
+ * Remove campaign image
+ */
+function removeCampaignImage() {
+    document.getElementById('campaignThumbnailFile').value = '';
+    document.getElementById('campaignThumbnailUrl').value = '';
+    document.getElementById('thumbnailPreview').style.display = 'none';
+    document.getElementById('thumbnailPreviewImg').src = '';
+    uploadedImageFile = null;
 }

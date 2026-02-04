@@ -10,9 +10,12 @@ namespace TuThien.Controllers.Admin;
 /// </summary>
 public class AdminCampaignsController : AdminBaseController
 {
-    public AdminCampaignsController(TuThienContext context, ILogger<AdminCampaignsController> logger)
+    private readonly IWebHostEnvironment _environment;
+
+    public AdminCampaignsController(TuThienContext context, ILogger<AdminCampaignsController> logger, IWebHostEnvironment environment)
         : base(context, logger)
     {
+        _environment = environment;
     }
 
     /// <summary>
@@ -287,7 +290,7 @@ public class AdminCampaignsController : AdminBaseController
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([FromForm] CampaignAdminViewModel model)
+    public async Task<IActionResult> Create([FromForm] CampaignAdminViewModel model, IFormFile? thumbnailImage)
     {
         try
         {
@@ -326,6 +329,18 @@ public class AdminCampaignsController : AdminBaseController
                 return Json(new { success = false, message = "Đã tồn tại chiến dịch với tên này. Vui lòng chọn tên khác." });
             }
 
+            // Handle image upload
+            string? thumbnailUrl = model.ThumbnailUrl;
+            if (thumbnailImage != null && thumbnailImage.Length > 0)
+            {
+                var uploadResult = await UploadCampaignImage(thumbnailImage);
+                if (!uploadResult.Success)
+                {
+                    return Json(new { success = false, message = uploadResult.Message });
+                }
+                thumbnailUrl = uploadResult.FilePath;
+            }
+
             var campaign = new Campaign
             {
                 CreatorId = adminUserId.Value,
@@ -336,7 +351,7 @@ public class AdminCampaignsController : AdminBaseController
                 CurrentAmount = 0,
                 StartDate = model.StartDate ?? DateTime.Now,
                 EndDate = model.EndDate,
-                ThumbnailUrl = model.ThumbnailUrl,
+                ThumbnailUrl = thumbnailUrl,
                 ExcessFundOption = model.ExcessFundOption,
                 Status = "active",
                 CreatedAt = DateTime.Now,
@@ -397,7 +412,7 @@ public class AdminCampaignsController : AdminBaseController
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Update([FromForm] CampaignAdminViewModel model)
+    public async Task<IActionResult> Update([FromForm] CampaignAdminViewModel model, IFormFile? thumbnailImage)
     {
         try
         {
@@ -436,6 +451,27 @@ public class AdminCampaignsController : AdminBaseController
                 return Json(new { success = false, message = "Đã tồn tại chiến dịch với tên này. Vui lòng chọn tên khác." });
             }
 
+            // Handle image upload
+            if (thumbnailImage != null && thumbnailImage.Length > 0)
+            {
+                // Delete old image if exists
+                if (!string.IsNullOrEmpty(campaign.ThumbnailUrl) && campaign.ThumbnailUrl.StartsWith("/uploads/"))
+                {
+                    DeleteCampaignImage(campaign.ThumbnailUrl);
+                }
+
+                var uploadResult = await UploadCampaignImage(thumbnailImage);
+                if (!uploadResult.Success)
+                {
+                    return Json(new { success = false, message = uploadResult.Message });
+                }
+                campaign.ThumbnailUrl = uploadResult.FilePath;
+            }
+            else if (!string.IsNullOrEmpty(model.ThumbnailUrl))
+            {
+                campaign.ThumbnailUrl = model.ThumbnailUrl;
+            }
+
             var oldTitle = campaign.Title;
             campaign.Title = model.Title.Trim();
             campaign.Description = model.Description.Trim();
@@ -443,7 +479,6 @@ public class AdminCampaignsController : AdminBaseController
             campaign.CategoryId = model.CategoryId;
             campaign.StartDate = model.StartDate;
             campaign.EndDate = model.EndDate;
-            campaign.ThumbnailUrl = model.ThumbnailUrl;
             campaign.ExcessFundOption = model.ExcessFundOption;
             if (!string.IsNullOrEmpty(model.Status))
             {
@@ -491,6 +526,12 @@ public class AdminCampaignsController : AdminBaseController
 
         var campaignTitle = campaign.Title;
 
+        // Delete thumbnail image
+        if (!string.IsNullOrEmpty(campaign.ThumbnailUrl) && campaign.ThumbnailUrl.StartsWith("/uploads/"))
+        {
+            DeleteCampaignImage(campaign.ThumbnailUrl);
+        }
+
         var documents = await _context.CampaignDocuments.Where(d => d.CampaignId == campaignId).ToListAsync();
         _context.CampaignDocuments.RemoveRange(documents);
 
@@ -508,5 +549,80 @@ public class AdminCampaignsController : AdminBaseController
         await LogAuditAsync("ADMIN_DELETE_CAMPAIGN", "Campaigns", campaignId, campaignTitle, null);
 
         return Json(new { success = true, message = "Xóa chiến dịch thành công" });
+    }
+
+    // ============== HELPER METHODS ==============
+
+    /// <summary>
+    /// Upload campaign thumbnail image
+    /// </summary>
+    private async Task<(bool Success, string? FilePath, string? Message)> UploadCampaignImage(IFormFile file)
+    {
+        try
+        {
+            // Validate file
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            
+            if (!allowedExtensions.Contains(extension))
+            {
+                return (false, null, "Chỉ chấp nhận file ảnh JPG hoặc PNG");
+            }
+
+            if (file.Length > 5 * 1024 * 1024) // 5MB
+            {
+                return (false, null, "Kích thước file không được vượt quá 5MB");
+            }
+
+            // Create uploads directory if not exists
+            var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "campaigns");
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+
+            // Generate unique filename
+            var uniqueFileName = $"{Guid.NewGuid()}{extension}";
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            // Save file
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(fileStream);
+            }
+
+            var webPath = $"/uploads/campaigns/{uniqueFileName}";
+            return (true, webPath, "Upload thành công");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading campaign image");
+            return (false, null, "Lỗi khi upload ảnh: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Delete campaign thumbnail image
+    /// </summary>
+    private void DeleteCampaignImage(string thumbnailUrl)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(thumbnailUrl) || !thumbnailUrl.StartsWith("/uploads/"))
+            {
+                return;
+            }
+
+            var filePath = Path.Combine(_environment.WebRootPath, thumbnailUrl.TrimStart('/'));
+            if (System.IO.File.Exists(filePath))
+            {
+                System.IO.File.Delete(filePath);
+                _logger.LogInformation("Deleted campaign image: {FilePath}", filePath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting campaign image: {ThumbnailUrl}", thumbnailUrl);
+        }
     }
 }
