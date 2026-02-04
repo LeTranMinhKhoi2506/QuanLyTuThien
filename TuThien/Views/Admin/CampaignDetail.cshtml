@@ -164,6 +164,8 @@
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
+
+
                         @foreach (var doc in Model.CampaignDocuments)
                         {
                             <div class="col-md-4">
@@ -427,11 +429,16 @@
         formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
         try {
-            const response = await fetch('@Url.Action("ApproveCampaign", "Admin")', {
+            const response = await fetch('@Url.Action("Approve", "AdminCampaigns")', {
                 method: 'POST',
                 body: formData
             });
                 
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || response.statusText);
+            }
+
             const result = await response.json();
             if (result.success) {
                 showToast('Thành công', 'Phê duyệt chiến dịch thành công!', 'success');
@@ -442,7 +449,8 @@
                 showToast('Lỗi', result.message, 'error');
             }
         } catch (error) {
-            showToast('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
+            console.error('Approve Error:', error);
+            showToast('Lỗi', 'Có lỗi xảy ra: ' + error.message, 'error');
         }
     }
         
@@ -464,11 +472,16 @@
         formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
         try {
-            const response = await fetch('@Url.Action("RejectCampaign", "Admin")', {
+            const response = await fetch('@Url.Action("Reject", "AdminCampaigns")', {
                 method: 'POST',
                 body: formData
             });
                 
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || response.statusText);
+            }
+
             const result = await response.json();
             if (result.success) {
                 showToast('Hoàn tất', 'Đã từ chối chiến dịch!', 'info');
@@ -479,7 +492,8 @@
                 showToast('Lỗi', result.message, 'error');
             }
         } catch (error) {
-            showToast('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
+            console.error('Reject Error:', error);
+            showToast('Lỗi', 'Có lỗi xảy ra: ' + error.message, 'error');
         }
     }
         
@@ -502,11 +516,16 @@
         formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
         try {
-            const response = await fetch('@Url.Action("CloseCampaign", "Admin")', {
+            const response = await fetch('@Url.Action("Close", "AdminCampaigns")', {
                 method: 'POST',
                 body: formData
             });
                 
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || response.statusText);
+            }
+
             const result = await response.json();
             if (result.success) {
                 showToast('Thành công', 'Chiến dịch đã hoàn thành!', 'success');
@@ -517,7 +536,8 @@
                 showToast('Lỗi', result.message, 'error');
             }
         } catch (error) {
-            showToast('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
+            console.error('Close Error:', error);
+            showToast('Lỗi', 'Có lỗi xảy ra: ' + error.message, 'error');
         }
     }
     
@@ -544,11 +564,16 @@
         formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
         try {
-            const response = await fetch('@Url.Action("UpdateCampaignStatus", "Admin")', {
+            const response = await fetch('@Url.Action("UpdateStatus", "AdminCampaigns")', {
                 method: 'POST',
                 body: formData
             });
                 
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || response.statusText);
+            }
+
             const result = await response.json();
             if (result.success) {
                 showToast('Thành công', 'Đã tạm dừng chiến dịch!', 'success');
@@ -559,7 +584,8 @@
                 showToast('Lỗi', result.message, 'error');
             }
         } catch (error) {
-            showToast('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
+            console.error('Pause Error:', error);
+            showToast('Lỗi', 'Có lỗi xảy ra: ' + error.message, 'error');
         }
     }
     
@@ -581,10 +607,15 @@
         formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
         try {
-            const response = await fetch('@Url.Action("UpdateCampaignStatus", "Admin")', {
+            const response = await fetch('@Url.Action("UpdateStatus", "AdminCampaigns")', {
                 method: 'POST',
                 body: formData
             });
+            
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || response.statusText);
+            }
                 
             const result = await response.json();
             if (result.success) {
@@ -596,7 +627,8 @@
                 showToast('Lỗi', result.message, 'error');
             }
         } catch (error) {
-            showToast('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
+            console.error('Resume Error:', error);
+            showToast('Lỗi', 'Có lỗi xảy ra: ' + error.message, 'error');
         }
     }
         

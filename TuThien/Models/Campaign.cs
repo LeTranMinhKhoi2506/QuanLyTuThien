@@ -33,6 +33,8 @@ public partial class Campaign
 
     public DateTime? UpdatedAt { get; set; }
 
+
+
     public virtual ICollection<CampaignDocument> CampaignDocuments { get; set; } = new List<CampaignDocument>();
 
     public virtual ICollection<CampaignMilestone> CampaignMilestones { get; set; } = new List<CampaignMilestone>();
