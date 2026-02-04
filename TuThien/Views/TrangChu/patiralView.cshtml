@@ -39,7 +39,12 @@
                             <div class="campaign-content">
                                 <h5 class="campaign-title">@camp.Title</h5>
                                 <p class="campaign-description">
-                                    @(camp.Description?.Length > 100 ? camp.Description.Substring(0, 100) + "..." : camp.Description)
+                                    @{
+                                        // Strip HTML tags from description
+                                        var plainText = System.Text.RegularExpressions.Regex.Replace(camp.Description ?? "", "<[^>]*>", " ");
+                                        plainText = System.Text.RegularExpressions.Regex.Replace(plainText, @"\s+", " ").Trim();
+                                    }
+                                    @(plainText.Length > 100 ? plainText.Substring(0, 100) + "..." : plainText)
                                 </p>
 
                                 <div class="campaign-progress mb-3">
@@ -61,7 +66,7 @@
                                 </div>
 
                                 <div class="campaign-footer">
-                                    <a class="btn btn-primary btn-donate w-100" href="@Url.Action("Details", "Campaign", new { id = camp.CampaignId })">
+                                    <a class="btn btn-primary btn-donate w-100" href="/donate/@camp.CampaignId">
                                         <i class="bi bi-heart-fill me-2"></i>Quyên góp ngay
                                     </a>
                                 </div>

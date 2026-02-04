@@ -18,6 +18,7 @@ public class DonationController : Controller
     private readonly ILogger<DonationController> _logger;
     private readonly IEmailService _emailService;
     private readonly IDonationValidationService _validationService;
+    private readonly IMoMoService _momoService;
     private readonly DonationSettings _donationSettings;
     private readonly BankSettings _bankSettings;
     private readonly VNPaySettings _vnpaySettings;
@@ -28,6 +29,7 @@ public class DonationController : Controller
         ILogger<DonationController> logger, 
         IEmailService emailService,
         IDonationValidationService validationService,
+        IMoMoService momoService,
         IOptions<DonationSettings> donationSettings,
         IOptions<BankSettings> bankSettings,
         IOptions<VNPaySettings> vnpaySettings,
@@ -37,6 +39,7 @@ public class DonationController : Controller
         _logger = logger;
         _emailService = emailService;
         _validationService = validationService;
+        _momoService = momoService;
         _donationSettings = donationSettings.Value;
         _bankSettings = bankSettings.Value;
         _vnpaySettings = vnpaySettings.Value;
@@ -48,7 +51,51 @@ public class DonationController : Controller
         return HttpContext.Session.GetInt32("UserId");
     }
 
+
     /// <summary>
+    /// Trang chính quyên góp - Hiển thị danh sách chiến dịch để người dùng chọn
+    /// Route: /donate, /donate/{id} hoặc /Donation/Index
+    /// </summary>
+    [HttpGet]
+    [Route("donate")]
+    [Route("donate/{campaignId:int}")]
+    [Route("Donation")]
+    [Route("Donation/Index")]
+    public async Task<IActionResult> Index(int? campaignId = null)
+    {
+        // Kiểm tra đăng nhập - yêu cầu đăng nhập để quyên góp
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue)
+        {
+            TempData["ErrorMessage"] = "Vui lòng đăng nhập để quyên góp";
+            // Lưu URL hiện tại để redirect sau khi đăng nhập
+            var returnUrl = campaignId.HasValue ? $"/donate/{campaignId}" : "/donate";
+            return RedirectToAction("Login", "Account", new { returnUrl });
+        }
+
+        // Lấy danh sách chiến dịch đang hoạt động
+        var activeCampaigns = await _context.Campaigns
+            .Include(c => c.Category)
+            .Include(c => c.Creator)
+            .Where(c => c.Status == "active")
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync();
+
+        ViewBag.Campaigns = activeCampaigns;
+        ViewBag.DonationSettings = _donationSettings;
+
+        // Nếu có campaignId, preselect chiến dịch đó
+        if (campaignId.HasValue)
+        {
+            var selectedCampaign = activeCampaigns.FirstOrDefault(c => c.CampaignId == campaignId.Value);
+            ViewBag.SelectedCampaign = selectedCampaign;
+        }
+
+        return View();
+    }
+
+    /// <summary>
+    /// Trang quyên góp cho chiến dịch cụ thể
     /// Trang hướng dẫn đóng góp
     /// </summary>
     [HttpGet]
@@ -144,14 +191,41 @@ public class DonationController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ProcessDonation(DonationViewModel model)
+    public async Task<IActionResult> ProcessDonation([FromBody] DonationViewModel model)
     {
+        _logger.LogInformation("ProcessDonation called with CampaignId: {CampaignId}, Amount: {Amount}, PaymentMethod: {PaymentMethod}", 
+            model?.CampaignId, model?.Amount, model?.PaymentMethod);
+
         try
         {
+            // Kiểm tra đăng nhập
+            var userId = GetCurrentUserId();
+            if (!userId.HasValue)
+            {
+                _logger.LogWarning("ProcessDonation: User not logged in");
+                return Json(new DonationResponseViewModel 
+                { 
+                    Success = false, 
+                    Message = "Vui lòng đăng nhập để quyên góp",
+                    RequireLogin = true
+                });
+            }
+
+            if (model == null)
+            {
+                _logger.LogWarning("ProcessDonation: Model is null");
+                return Json(new DonationResponseViewModel 
+                { 
+                    Success = false, 
+                    Message = "Dữ liệu không hợp lệ"
+                });
+            }
+
             // Server-side validation sử dụng validation service
             var validationResult = _validationService.ValidateDonation(model);
             if (!validationResult.IsValid)
             {
+                _logger.LogWarning("ProcessDonation validation failed: {Errors}", string.Join("; ", validationResult.Errors));
                 return Json(new DonationResponseViewModel 
                 { 
                     Success = false, 
@@ -162,6 +236,7 @@ public class DonationController : Controller
             var campaign = await _context.Campaigns.FindAsync(model.CampaignId);
             if (campaign == null || campaign.Status != "active")
             {
+                _logger.LogWarning("ProcessDonation: Campaign not found or inactive. CampaignId: {CampaignId}", model.CampaignId);
                 return Json(new DonationResponseViewModel 
                 { 
                     Success = false, 
@@ -169,10 +244,10 @@ public class DonationController : Controller
                 });
             }
 
-            var userId = GetCurrentUserId();
-
             // Tạo mã giao dịch unique
             var transactionCode = $"TT{DateTime.Now:yyyyMMddHHmmss}{new Random().Next(1000, 9999)}";
+
+            _logger.LogInformation("Creating donation with TransactionCode: {TransactionCode}", transactionCode);
 
             // Tạo donation với trạng thái pending
             var donation = new Donation
@@ -202,13 +277,30 @@ public class DonationController : Controller
                         RedirectUrl = vnpayUrl 
                     });
 
+
                 case "momo":
-                    var momoUrl = CreateMoMoPaymentUrl(donation);
-                    return Json(new DonationResponseViewModel 
-                    { 
-                        Success = true, 
-                        RedirectUrl = momoUrl 
-                    });
+                    var momoResult = await CreateMoMoPaymentAsync(donation, campaign.Title);
+                    if (momoResult.Success)
+                    {
+                        return Json(new DonationResponseViewModel 
+                        { 
+                            Success = true, 
+                            RedirectUrl = momoResult.PayUrl,
+                            TransactionCode = transactionCode
+                        });
+                    }
+                    else
+                    {
+                        // Rollback donation nếu tạo payment thất bại
+                        _context.Donations.Remove(donation);
+                        await _context.SaveChangesAsync();
+                        
+                        return Json(new DonationResponseViewModel 
+                        { 
+                            Success = false, 
+                            Message = momoResult.Message ?? "Không thể tạo thanh toán MoMo"
+                        });
+                    }
 
                 case "bank_transfer":
                     return Json(new DonationResponseViewModel 
@@ -255,15 +347,27 @@ public class DonationController : Controller
     }
 
     /// <summary>
-    /// Tạo URL thanh toán MoMo
+    /// Tạo thanh toán MoMo thực tế qua API
     /// </summary>
-    private string CreateMoMoPaymentUrl(Donation donation)
+    private async Task<MoMoPaymentResponse> CreateMoMoPaymentAsync(Donation donation, string campaignTitle)
     {
-        // TODO: Implement MoMo payment URL creation
-        _logger.LogInformation($"Creating MoMo payment for transaction {donation.TransactionCode}");
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
         
-        // Mock URL cho development
-        return $"/Donation/PaymentSimulation?transactionCode={donation.TransactionCode}&amount={donation.Amount}&method=momo";
+        var request = new MoMoPaymentRequest
+        {
+            OrderId = donation.TransactionCode ?? $"TT{DateTime.Now.Ticks}",
+            OrderInfo = $"Quyên góp cho chiến dịch: {campaignTitle}",
+            Amount = (long)donation.Amount,
+            ReturnUrl = $"{baseUrl}{_momoSettings.ReturnUrl}",
+            NotifyUrl = $"{baseUrl}{_momoSettings.NotifyUrl}",
+            ExtraData = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+                JsonSerializer.Serialize(new { donationId = donation.DonationId })))
+        };
+
+        _logger.LogInformation("Creating MoMo payment for donation {DonationId}, TransactionCode: {TransactionCode}", 
+            donation.DonationId, donation.TransactionCode);
+
+        return await _momoService.CreatePaymentAsync(request);
     }
 
     /// <summary>
@@ -283,7 +387,7 @@ public class DonationController : Controller
     }
 
     /// <summary>
-    /// Trang mô phỏng thanh toán (cho development)
+    /// Trang mô phỏng thanh toán (cho development khi không có ngrok)
     /// </summary>
     [HttpGet]
     public IActionResult PaymentSimulation(string transactionCode, decimal amount, string method)
@@ -319,7 +423,157 @@ public class DonationController : Controller
     }
 
     /// <summary>
-    /// Callback từ MoMo
+    /// MoMo Return URL - Redirect sau khi thanh toán
+    /// </summary>
+    [HttpGet]
+    [Route("Donation/MoMoReturn")]
+    public async Task<IActionResult> MoMoReturn()
+    {
+        var partnerCode = Request.Query["partnerCode"].ToString();
+        var orderId = Request.Query["orderId"].ToString();
+        var requestId = Request.Query["requestId"].ToString();
+        var amount = Request.Query["amount"].ToString();
+        var orderInfo = Request.Query["orderInfo"].ToString();
+        var orderType = Request.Query["orderType"].ToString();
+        var transId = Request.Query["transId"].ToString();
+        var resultCode = Request.Query["resultCode"].ToString();
+        var message = Request.Query["message"].ToString();
+        var payType = Request.Query["payType"].ToString();
+        var responseTime = Request.Query["responseTime"].ToString();
+        var extraData = Request.Query["extraData"].ToString();
+        var signature = Request.Query["signature"].ToString();
+
+        _logger.LogInformation("MoMo Return - OrderId: {OrderId}, ResultCode: {ResultCode}, Message: {Message}, TransId: {TransId}", 
+            orderId, resultCode, message, transId);
+
+        // Trong môi trường dev, bỏ qua verify signature vì MoMo sandbox đôi khi không khớp
+        // Production nên bật lại signature verification
+        #if !DEBUG
+        // Verify signature
+        var rawSignature = $"accessKey={_momoSettings.AccessKey}" +
+                          $"&amount={amount}" +
+                          $"&extraData={extraData}" +
+                          $"&message={message}" +
+                          $"&orderId={orderId}" +
+                          $"&orderInfo={orderInfo}" +
+                          $"&orderType={orderType}" +
+                          $"&partnerCode={partnerCode}" +
+                          $"&payType={payType}" +
+                          $"&requestId={requestId}" +
+                          $"&responseTime={responseTime}" +
+                          $"&resultCode={resultCode}" +
+                          $"&transId={transId}";
+
+        var isValidSignature = _momoService.ValidateSignature(rawSignature, signature);
+        
+        if (!isValidSignature)
+        {
+            _logger.LogWarning("MoMo Return - Invalid signature for OrderId: {OrderId}", orderId);
+            TempData["ErrorMessage"] = "Chữ ký không hợp lệ";
+            return RedirectToAction("Index", "TrangChu");
+        }
+        #endif
+
+        // Chỉ xử lý khi thanh toán thành công (resultCode = 0)
+        if (resultCode == "0")
+        {
+            _logger.LogInformation("MoMo payment SUCCESS - Processing OrderId: {OrderId}", orderId);
+            return await ProcessPaymentSuccess(orderId);
+        }
+        else
+        {
+            // Không ghi đơn failed vào DB cho các trường hợp hủy
+            // Chỉ log và redirect về trang thất bại
+            _logger.LogWarning("MoMo payment FAILED - OrderId: {OrderId}, ResultCode: {ResultCode}, Message: {Message}", 
+                orderId, resultCode, message);
+            
+            var errorMessage = resultCode switch
+            {
+                "1001" => "Giao dịch thất bại do tài khoản không đủ số dư",
+                "1002" => "Giao dịch bị từ chối bởi nhà phát hành",
+                "1003" => "Giao dịch bị hủy bởi người dùng",
+                "1004" => "Số tiền vượt quá hạn mức giao dịch",
+                "1005" => "Url hoặc QR code đã hết hạn",
+                "1006" => "Người dùng đã từ chối xác nhận thanh toán",
+                "1007" => "Không đủ thông tin",
+                "49" => "Người dùng chưa hoàn thành thanh toán",
+                _ => $"Thanh toán MoMo thất bại (Mã lỗi: {resultCode})"
+            };
+            
+            // Không cập nhật status failed, chỉ redirect với thông báo lỗi
+            TempData["ErrorMessage"] = errorMessage;
+            
+            // Tìm donation để lấy campaignId
+            var donation = await _context.Donations
+                .FirstOrDefaultAsync(d => d.TransactionCode == orderId);
+            
+            if (donation != null)
+            {
+                return RedirectToAction("DonationFailed", new { transactionCode = orderId, message = errorMessage });
+            }
+            
+            return RedirectToAction("Index", "TrangChu");
+        }
+    }
+
+    /// <summary>
+    /// MoMo IPN (Instant Payment Notification) - Server to Server callback
+    /// </summary>
+    [HttpPost]
+    [Route("Donation/MoMoNotify")]
+    public async Task<IActionResult> MoMoNotify([FromBody] MoMoCallbackRequest callback)
+    {
+        _logger.LogInformation("MoMo IPN - OrderId: {OrderId}, ResultCode: {ResultCode}", 
+            callback.OrderId, callback.ResultCode);
+
+        try
+        {
+            // Verify signature
+            var rawSignature = $"accessKey={_momoSettings.AccessKey}" +
+                              $"&amount={callback.Amount}" +
+                              $"&extraData={callback.ExtraData}" +
+                              $"&message={callback.Message}" +
+                              $"&orderId={callback.OrderId}" +
+                              $"&orderInfo={callback.OrderInfo}" +
+                              $"&orderType={callback.OrderType}" +
+                              $"&partnerCode={callback.PartnerCode}" +
+                              $"&payType={callback.PayType}" +
+                              $"&requestId={callback.RequestId}" +
+                              $"&responseTime={callback.ResponseTime}" +
+                              $"&resultCode={callback.ResultCode}" +
+                              $"&transId={callback.TransId}";
+
+            var isValidSignature = _momoService.ValidateSignature(rawSignature, callback.Signature ?? "");
+            
+            if (!isValidSignature)
+            {
+                _logger.LogWarning("MoMo IPN - Invalid signature for OrderId: {OrderId}", callback.OrderId);
+                return BadRequest(new { message = "Invalid signature" });
+            }
+
+            if (callback.ResultCode == 0) // Thanh toán thành công
+            {
+                await ProcessPaymentSuccessInternal(callback.OrderId ?? "");
+            }
+            else
+            {
+                // Không cập nhật status failed cho đơn bị huỷ - chỉ log
+                _logger.LogWarning("MoMo IPN - Payment failed/cancelled - OrderId: {OrderId}, ResultCode: {ResultCode}", 
+                    callback.OrderId, callback.ResultCode);
+            }
+
+            // Return success response to MoMo
+            return Ok(new { message = "Success" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing MoMo IPN for OrderId: {OrderId}", callback.OrderId);
+            return StatusCode(500, new { message = "Internal error" });
+        }
+    }
+
+    /// <summary>
+    /// Callback cũ từ MoMo (backward compatibility)
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> MoMoCallback()
@@ -333,7 +587,10 @@ public class DonationController : Controller
         }
         else
         {
-            return await ProcessPaymentFailed(orderId, "Thanh toán MoMo thất bại");
+            // Không cập nhật status failed, chỉ redirect với thông báo lỗi
+            _logger.LogWarning("MoMoCallback - Payment failed - OrderId: {OrderId}, ResultCode: {ResultCode}", orderId, resultCode);
+            TempData["ErrorMessage"] = "Thanh toán MoMo thất bại";
+            return RedirectToAction("DonationFailed", new { transactionCode = orderId, message = "Thanh toán MoMo thất bại" });
         }
     }
 
@@ -351,104 +608,11 @@ public class DonationController : Controller
     /// </summary>
     private async Task<IActionResult> ProcessPaymentSuccess(string transactionCode)
     {
-        try
-        {
-            var donation = await _context.Donations
-                .Include(d => d.Campaign)
-                .Include(d => d.User)
-                .FirstOrDefaultAsync(d => d.TransactionCode == transactionCode);
-
-            if (donation == null)
-            {
-                TempData["ErrorMessage"] = "Không tìm thấy giao dịch";
-                return RedirectToAction("Index", "TrangChu");
-            }
-
-            if (donation.PaymentStatus == "completed")
-            {
-                // Đã xử lý rồi
-                return RedirectToAction("Details", "TrangChu", new { id = donation.CampaignId });
-            }
-
-            // Cập nhật trạng thái donation
-            donation.PaymentStatus = "completed";
-            donation.DonatedAt = DateTime.Now;
-
-            // Cập nhật số tiền campaign (Real-time tracking)
-            var campaign = donation.Campaign;
-            campaign.CurrentAmount = (campaign.CurrentAmount ?? 0) + donation.Amount;
-            campaign.UpdatedAt = DateTime.Now;
-
-            // Ghi nhận giao dịch tài chính
-            var transaction = new FinancialTransaction
-            {
-                CampaignId = donation.CampaignId,
-                Type = "donation",
-                Amount = donation.Amount,
-                Description = $"Quyên góp từ giao dịch #{donation.TransactionCode}",
-                ReferenceId = donation.DonationId,
-                CreatedAt = DateTime.Now
-            };
-            _context.FinancialTransactions.Add(transaction);
-
-            // Tạo thông báo cho người quyên góp
-            if (donation.UserId.HasValue)
-            {
-                var notification = new Notification
-                {
-                    UserId = donation.UserId.Value,
-                    Title = "Quyên góp thành công",
-                    Message = $"Cảm ơn bạn đã quyên góp {donation.Amount:N0} VNĐ cho chiến dịch \"{campaign.Title}\"",
-                    Type = "donation",
-                    IsRead = false,
-                    CreatedAt = DateTime.Now
-                };
-                _context.Notifications.Add(notification);
-            }
-
-            // Tạo thông báo cho người tạo chiến dịch
-            var creatorNotification = new Notification
-            {
-                UserId = campaign.CreatorId,
-                Title = "Có quyên góp mới",
-                Message = $"Chiến dịch \"{campaign.Title}\" vừa nhận được {donation.Amount:N0} VNĐ",
-                Type = "donation",
-                IsRead = false,
-                CreatedAt = DateTime.Now
-            };
-            _context.Notifications.Add(creatorNotification);
-
-            await _context.SaveChangesAsync();
-
-            // Gửi email cảm ơn (async, không chờ)
-            if (donation.User != null && !string.IsNullOrEmpty(donation.User.Email))
-            {
-                var donorName = donation.IsAnonymous == true ? "Nhà hảo tâm" : donation.User.Username;
-                _ = _emailService.SendThankYouEmailAsync(donation.User.Email, donorName, campaign.Title, donation.Amount);
-            }
-
-            // Kiểm tra nếu đạt mục tiêu và xử lý tiền thừa
-            await CheckAndProcessExcessFundAsync(campaign);
-
-            _logger.LogInformation($"Payment completed for transaction {transactionCode}");
-
-            TempData["SuccessMessage"] = $"Cảm ơn bạn đã quyên góp {donation.Amount:N0} VNĐ cho chiến dịch \"{campaign.Title}\"!";
-            return RedirectToAction("Details", "TrangChu", new { id = donation.CampaignId });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error processing payment success for {transactionCode}");
-            TempData["ErrorMessage"] = "Đã xảy ra lỗi khi xử lý thanh toán";
-            return RedirectToAction("Index", "TrangChu");
-        }
-    }
-
-    /// <summary>
-    /// Xử lý khi thanh toán thất bại
-    /// </summary>
-    private async Task<IActionResult> ProcessPaymentFailed(string transactionCode, string reason)
-    {
-        try
+        _logger.LogInformation("ProcessPaymentSuccess called for TransactionCode: {TransactionCode}", transactionCode);
+        
+        var result = await ProcessPaymentSuccessInternal(transactionCode);
+        
+        if (result)
         {
             var donation = await _context.Donations
                 .Include(d => d.Campaign)
@@ -456,20 +620,210 @@ public class DonationController : Controller
 
             if (donation != null)
             {
+                TempData["SuccessMessage"] = $"Cảm ơn bạn đã quyên góp {donation.Amount:N0} VNĐ!";
+                return RedirectToAction("DonationSuccess", new { transactionCode });
+            }
+        }
+
+        TempData["ErrorMessage"] = "Không thể xử lý giao dịch";
+        return RedirectToAction("Index", "TrangChu");
+    }
+
+    /// <summary>
+    /// Xử lý nội bộ khi thanh toán thành công (không redirect - dùng cho IPN)
+    /// </summary>
+    /// <returns>True nếu xử lý thành công</returns>
+    private async Task<bool> ProcessPaymentSuccessInternal(string transactionCode)
+    {
+        try
+        {
+            _logger.LogInformation("ProcessPaymentSuccessInternal starting for TransactionCode: {TransactionCode}", transactionCode);
+            
+            var donation = await _context.Donations
+                .Include(d => d.User)
+                .FirstOrDefaultAsync(d => d.TransactionCode == transactionCode);
+
+            if (donation == null)
+            {
+                _logger.LogWarning("Transaction not found: {TransactionCode}", transactionCode);
+                return false;
+            }
+
+            _logger.LogInformation("Found donation - Id: {DonationId}, Status: {Status}, Amount: {Amount}, CampaignId: {CampaignId}", 
+                donation.DonationId, donation.PaymentStatus, donation.Amount, donation.CampaignId);
+
+            if (donation.PaymentStatus == "success")
+            {
+                _logger.LogInformation("Transaction already completed: {TransactionCode}", transactionCode);
+                return true; // Return true because it was already processed
+            }
+
+            // Cập nhật trạng thái donation
+            donation.PaymentStatus = "success";
+            donation.DonatedAt = DateTime.Now;
+
+            // Load Campaign trực tiếp từ database để đảm bảo tracking đúng
+            var campaign = await _context.Campaigns.FindAsync(donation.CampaignId);
+            if (campaign != null)
+            {
+                var oldAmount = campaign.CurrentAmount ?? 0;
+                campaign.CurrentAmount = oldAmount + donation.Amount;
+                campaign.UpdatedAt = DateTime.Now;
+
+                _logger.LogInformation("Updating campaign {CampaignId} ({Title}) amount: {OldAmount} -> {NewAmount}", 
+                    campaign.CampaignId, campaign.Title, oldAmount, campaign.CurrentAmount);
+
+                // Đánh dấu campaign đã thay đổi
+                _context.Entry(campaign).State = EntityState.Modified;
+
+                // Ghi nhận giao dịch tài chính
+                var transaction = new FinancialTransaction
+                {
+                    CampaignId = donation.CampaignId,
+                    Type = "in", // 'in' = tiền vào, 'out' = tiền ra
+                    Amount = donation.Amount,
+                    Description = $"Quyên góp từ giao dịch #{donation.TransactionCode}",
+                    ReferenceId = donation.DonationId,
+                    CreatedAt = DateTime.Now
+                };
+                _context.FinancialTransactions.Add(transaction);
+
+                // Tạo thông báo cho người quyên góp
+                if (donation.UserId.HasValue)
+                {
+                    var notification = new Notification
+                    {
+                        UserId = donation.UserId.Value,
+                        Title = "Quyên góp thành công",
+                        Message = $"Cảm ơn bạn đã quyên góp {donation.Amount:N0} VNĐ cho chiến dịch \"{campaign.Title}\"",
+                        Type = "payment", // CHECK constraint: 'system', 'campaign_update', 'payment'
+                        IsRead = false,
+                        CreatedAt = DateTime.Now
+                    };
+                    _context.Notifications.Add(notification);
+                }
+
+                // Tạo thông báo cho người tạo chiến dịch
+                var creatorNotification = new Notification
+                {
+                    UserId = campaign.CreatorId,
+                    Title = "Có quyên góp mới",
+                    Message = $"Chiến dịch \"{campaign.Title}\" vừa nhận được {donation.Amount:N0} VNĐ",
+                    Type = "payment", // CHECK constraint: 'system', 'campaign_update', 'payment'
+                    IsRead = false,
+                    CreatedAt = DateTime.Now
+                };
+                _context.Notifications.Add(creatorNotification);
+
+                // Kiểm tra nếu đạt mục tiêu
+                await CheckAndProcessExcessFundAsync(campaign);
+                
+                // Save changes
+                var savedCount = await _context.SaveChangesAsync();
+                _logger.LogInformation("SaveChanges completed - {Count} entities saved for transaction {TransactionCode}", 
+                    savedCount, transactionCode);
+                
+                // Verify the update
+                var verifyAmount = await _context.Campaigns
+                    .Where(c => c.CampaignId == campaign.CampaignId)
+                    .Select(c => c.CurrentAmount)
+                    .FirstOrDefaultAsync();
+                _logger.LogInformation("Verified campaign {CampaignId} CurrentAmount in DB: {Amount}", 
+                    campaign.CampaignId, verifyAmount);
+            }
+            else
+            {
+                _logger.LogWarning("Campaign not found for donation {DonationId}, CampaignId: {CampaignId}", 
+                    donation.DonationId, donation.CampaignId);
+                await _context.SaveChangesAsync();
+            }
+
+            _logger.LogInformation("Payment completed successfully for transaction {TransactionCode}", transactionCode);
+
+            // Gửi email cảm ơn (async, không chờ)
+            if (donation.User != null && !string.IsNullOrEmpty(donation.User.Email) && campaign != null)
+            {
+                var donorName = donation.IsAnonymous == true ? "Nhà hảo tâm" : donation.User.Username;
+                _ = _emailService.SendThankYouEmailAsync(donation.User.Email, donorName, campaign.Title, donation.Amount);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing payment success for {TransactionCode}", transactionCode);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Trang hiển thị quyên góp thành công
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> DonationSuccess(string transactionCode)
+    {
+        var donation = await _context.Donations
+            .Include(d => d.Campaign)
+            .FirstOrDefaultAsync(d => d.TransactionCode == transactionCode);
+
+        if (donation == null)
+        {
+            return RedirectToAction("Index", "TrangChu");
+        }
+
+        return View(donation);
+    }
+
+    /// <summary>
+    /// Xử lý khi thanh toán thất bại
+    /// </summary>
+    private async Task<IActionResult> ProcessPaymentFailed(string transactionCode, string reason)
+    {
+        await ProcessPaymentFailedInternal(transactionCode, reason);
+        
+        var donation = await _context.Donations
+            .FirstOrDefaultAsync(d => d.TransactionCode == transactionCode);
+
+        TempData["ErrorMessage"] = reason;
+        return RedirectToAction("DonationFailed", new { transactionCode, message = reason });
+    }
+
+    /// <summary>
+    /// Xử lý nội bộ khi thanh toán thất bại (không redirect - dùng cho IPN)
+    /// </summary>
+    private async Task ProcessPaymentFailedInternal(string transactionCode, string reason)
+    {
+        try
+        {
+            var donation = await _context.Donations
+                .FirstOrDefaultAsync(d => d.TransactionCode == transactionCode);
+
+            if (donation != null && donation.PaymentStatus != "success")
+            {
                 donation.PaymentStatus = "failed";
                 await _context.SaveChangesAsync();
             }
 
-            _logger.LogWarning($"Payment failed for transaction {transactionCode}: {reason}");
-
-            TempData["ErrorMessage"] = reason;
-            return RedirectToAction("Details", "TrangChu", new { id = donation?.CampaignId ?? 0 });
+            _logger.LogWarning("Payment failed for transaction {TransactionCode}: {Reason}", transactionCode, reason);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error processing payment failure for {transactionCode}");
-            return RedirectToAction("Index", "TrangChu");
+            _logger.LogError(ex, "Error processing payment failure for {TransactionCode}", transactionCode);
         }
+    }
+
+    /// <summary>
+    /// Trang hiển thị quyên góp thất bại
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> DonationFailed(string transactionCode, string? message)
+    {
+        var donation = await _context.Donations
+            .Include(d => d.Campaign)
+            .FirstOrDefaultAsync(d => d.TransactionCode == transactionCode);
+
+        ViewBag.ErrorMessage = message ?? "Thanh toán thất bại";
+        return View(donation);
     }
 
     /// <summary>

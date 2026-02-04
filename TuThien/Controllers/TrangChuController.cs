@@ -101,7 +101,7 @@ namespace TuThien.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(CampaignCreate model)
+        public async Task<IActionResult> Create(CampaignCreateViewModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -120,9 +120,8 @@ namespace TuThien.Controllers
                     TargetAmount = model.TargetAmount,
                     StartDate = model.StartDate,
                     EndDate = model.EndDate,
-                    ThumbnailUrl = model.ThumbnailUrl,
                     ExcessFundOption = model.ExcessFundOption,
-                    Status = model.Status,
+                    Status = "pending",
 
                     CreatorId = 3,
                     CurrentAmount = 0,

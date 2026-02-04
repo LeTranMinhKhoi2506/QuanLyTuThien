@@ -1,0 +1,141 @@
+@model IEnumerable<TuThien.Models.Category>
+
+@{
+
+    ViewData["Title"] = "Chiến dịch thiện nguyện";
+    Layout = "~/Views/Shared/_CampaignLayout.cshtml";
+}
+
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold mb-3">Các Chiến Dịch Từ Thiện</h2>
+        <p class="text-muted">Chung tay giúp đỡ những hoàn cảnh khó khăn</p>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="d-flex justify-content-center mb-5 overflow-auto">
+        <ul class="nav nav-pills flex-nowrap" id="campaignTabs" role="tablist">
+            <li class="nav-item mx-1" role="presentation">
+                <button class="nav-link active rounded-pill px-4" id="tab-all" data-id="" type="button">
+                    <i class="bi bi-grid-fill me-2"></i>Tất cả
+                </button>
+            </li>
+            @foreach (var cat in Model)
+            {
+                <li class="nav-item mx-1" role="presentation">
+                    <button class="nav-link rounded-pill px-4" id="tab-@cat.CategoryId" data-id="@cat.CategoryId" type="button" style="white-space: nowrap;">
+                        @cat.Name
+                    </button>
+                </li>
+            }
+        </ul>
+    </div>
+
+    <!-- Campaign List Container -->
+    <div id="campaign-list-container" style="min-height: 400px;">
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Function to load campaigns
+            function loadCampaigns(categoryId) {
+                // Show loading spinner
+                $('#campaign-list-container').html(
+                    '<div class="text-center py-5">' +
+                        '<div class="spinner-border text-primary" role="status">' +
+                            '<span class="visually-hidden">Loading...</span>' +
+                        '</div>' +
+                    '</div>'
+                );
+                
+                $.ajax({
+                    url: '@Url.Action("GetCampaigns", "Campaign")',
+                    type: 'GET',
+                    data: { categoryId: categoryId },
+                    success: function (data) {
+                        // Fade out loading and fade in content
+                        $('#campaign-list-container').hide().html(data).fadeIn(300);
+                    },
+                    error: function () {
+                        $('#campaign-list-container').html(
+                            '<div class="alert alert-danger text-center shadow-sm border-0">' +
+                                '<i class="bi bi-exclamation-triangle me-2"></i>' +
+                                'Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.' +
+                            '</div>'
+                        );
+                    }
+                });
+            }
+
+            // Function to get URL parameter
+            function getUrlParameter(name) {
+                name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+                var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+                var results = regex.exec(location.search);
+                return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+            }
+
+            // Get categoryId from URL
+            var urlCategoryId = getUrlParameter('categoryId');
+
+            // Initial load
+            if (urlCategoryId) {
+                // Activate the correct tab
+                $('#campaignTabs .nav-link').removeClass('active');
+                $('#tab-' + urlCategoryId).addClass('active');
+                
+                // Load data
+                loadCampaigns(urlCategoryId);
+            } else {
+                // Default load (All)
+                loadCampaigns('');
+            }
+
+            // Tab click event
+            $('#campaignTabs .nav-link').click(function () {
+                // Ignore if already active
+                if ($(this).hasClass('active')) return;
+
+                // Update active state
+                $('#campaignTabs .nav-link').removeClass('active');
+                $(this).addClass('active');
+
+                // Load data
+                var catId = $(this).data('id');
+                loadCampaigns(catId);
+            });
+        });
+    </script>
+
+    <style>
+        .nav-pills .nav-link {
+            color: #555;
+            background-color: #f8f9fa;
+            border: 1px solid #eee;
+            transition: all 0.3s ease;
+        }
+        .nav-pills .nav-link:hover {
+            background-color: #e9ecef;
+            transform: translateY(-2px);
+        }
+        .nav-pills .nav-link.active {
+            background-color: var(--bs-primary);
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .hover-animate {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .hover-animate:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+        }
+    </style>
+}

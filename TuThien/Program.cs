@@ -11,6 +11,12 @@ builder.Services.AddDbContext<TuThienContext>(options =>
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+// Configure Antiforgery to accept token from header (for AJAX requests)
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "RequestVerificationToken";
+});
+
 // Configure Options Pattern for settings
 builder.Services.Configure<DonationSettings>(
     builder.Configuration.GetSection(DonationSettings.SectionName));
@@ -26,6 +32,13 @@ builder.Services.AddScoped<IDonationValidationService, DonationValidationService
 
 // Add Email Service
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+// Add MoMo Service
+builder.Services.AddHttpClient("MoMo", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+builder.Services.AddScoped<IMoMoService, MoMoService>();
 
 // Add Session support
 builder.Services.AddSession(options =>

@@ -22,7 +22,33 @@ namespace TuThien.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
-        // GET: Campaign/ByCategory/1
+        // GET: Campaign/Index - Hiển thị danh sách categories
+        public async Task<IActionResult> Index()
+        {
+            var categories = await _context.Categories.ToListAsync();
+            return View(categories);
+        }
+
+        // GET: Campaign/GetCampaigns - Lấy campaigns theo category (dùng cho AJAX/Partial View)
+        public async Task<IActionResult> GetCampaigns(int? categoryId)
+        {
+            var query = _context.Campaigns
+                .Where(c => c.Status == "active" || c.Status == "approved") // Show active/approved campaigns
+                .Include(c => c.Category)
+                .AsQueryable();
+
+            if (categoryId.HasValue)
+            {
+                query = query.Where(c => c.CategoryId == categoryId.Value);
+            }
+
+            // Sort by Amount Donated (High to Low)
+            var campaigns = await query.OrderByDescending(c => c.CurrentAmount).ToListAsync();
+
+            return PartialView("_CampaignListPartial", campaigns);
+        }
+
+        // GET: Campaign/ByCategory/1 - Trang hiển thị tất cả campaigns theo category với phân trang
         [HttpGet("campaigns/category/{id}")]
         public async Task<IActionResult> ByCategory(int id, int page = 1, int pageSize = 12)
         {
@@ -126,10 +152,7 @@ namespace TuThien.Controllers
                     }
                     
                     thumbnailUrl = "/images/campaigns/" + uniqueFileName;
-
                 }
-
-
 
                 // Map to Entity
                 var campaign = new Campaign
