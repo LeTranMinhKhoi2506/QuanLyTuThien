@@ -6,7 +6,7 @@
         <div class="col">
             <div class="card h-100 shadow-sm border-0 campaign-card hover-animate">
                 <div class="position-relative">
-                    <img src="@item.ThumbnailUrl" class="card-img-top" alt="@item.Title" style="height: 200px; object-fit: cover;">
+                    <img src="@(string.IsNullOrEmpty(item.ThumbnailUrl) ? Url.Content("~/Images/DefaultPic.png") : item.ThumbnailUrl)" class="card-img-top" alt="@item.Title" style="height: 200px; object-fit: cover;">
                     @if(item.Category != null)
                     {
                         <span class="badge bg-primary position-absolute top-0 end-0 m-2">@item.Category.Name</span>

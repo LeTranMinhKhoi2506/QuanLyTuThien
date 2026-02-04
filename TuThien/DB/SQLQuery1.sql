@@ -4,6 +4,7 @@ GO
 USE TuThien;
 GO
 
+
 -- =============================================
 -- 1. BẢNG NGƯỜI DÙNG & XÁC THỰC (Users & Auth)
 -- Node 1.0, 1.1, 1.2
