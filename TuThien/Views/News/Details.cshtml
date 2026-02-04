@@ -28,7 +28,7 @@
             @if (Model.Campaign != null)
             {
                 <li class="breadcrumb-item">
-                    <a href="@Url.Action("Details", "TrangChu", new { id = Model.Campaign.CampaignId })">
+                    <a href="@Url.Action("Details", "Campaign", new { id = Model.Campaign.CampaignId })">
                         @Model.Campaign.Title
                     </a>
                 </li>
@@ -150,7 +150,7 @@
                                     }
                                     <span>B?i @(Model.Campaign.Creator?.Username ?? "Unknown")</span>
                                 </p>
-                                <a href="@Url.Action("Details", "TrangChu", new { id = Model.Campaign.CampaignId })" 
+                                <a href="@Url.Action("Details", "Campaign", new { id = Model.Campaign.CampaignId })" 
                                    class="btn btn-primary btn-sm">
                                     <i class="bi bi-arrow-right-circle me-2"></i>Xem chiến dịch
                                 </a>
@@ -253,10 +253,10 @@
             @if (Model.Campaign != null)
             {
                 <div class="back-to-campaign-card mt-4">
-                    <a href="@Url.Action("Details", "TrangChu", new { id = Model.Campaign.CampaignId })" 
+                    <a href="@Url.Action("Details", "Campaign", new { id = Model.Campaign.CampaignId })" 
                        class="btn btn-outline-primary w-100">
                         <i class="bi bi-arrow-left-circle me-2"></i>
-                        Quay v? chi?n d?ch
+                        Quay về chiến dịch
                     </a>
                 </div>
             }
@@ -304,7 +304,7 @@
 
         function copyLink() {
             navigator.clipboard.writeText(window.location.href).then(() => {
-                alert('?ã sao chép link vào clipboard!');
+                alert('Đã sao chép link vào clipboard!');
             });
         }
     </script>
