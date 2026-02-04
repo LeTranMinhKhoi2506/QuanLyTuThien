@@ -385,6 +385,42 @@
     font-size: 1.5rem;
 }
 
+/* Document Image Display - Hi?n th? ?nh tr?c ti?p */
+.document-image-item {
+    background: white;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.document-image-item:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.document-image-item img {
+    width: 100%;
+    height: auto;
+    max-height: 600px;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.document-image-item p {
+    margin-top: 0.75rem;
+    font-size: 0.95rem;
+}
+
+.document-item i.text-danger {
+    color: #dc3545 !important;
+}
+
+.document-item i.text-primary {
+    color: #0d6efd !important;
+}
+
 /* ==================== UPDATES ==================== */
 .update-item {
     background: #f8f9fa;

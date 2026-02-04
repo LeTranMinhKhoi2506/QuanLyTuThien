@@ -15,10 +15,20 @@ namespace TuThien.Controllers
         
         public async Task<IActionResult> Index()
         {
-            var categorise = await _context.Categories
-                .Include(c => c.Campaigns.Where(cmp => cmp.Status == "active"))
+            // Lấy tất cả categories
+            var categories = await _context.Categories
                 .OrderBy(c => c.Name)
                 .ToListAsync();
+
+            // Lấy top 3 campaigns mới nhất cho mỗi category
+            foreach (var category in categories)
+            {
+                category.Campaigns = await _context.Campaigns
+                    .Where(c => c.CategoryId == category.CategoryId && c.Status == "active")
+                    .OrderByDescending(c => c.CreatedAt)
+                    .Take(3)
+                    .ToListAsync();
+            }
 
             // Lấy top 3 tin tức mới nhất
             var latestNews = await _context.CampaignUpdates
@@ -32,7 +42,7 @@ namespace TuThien.Controllers
 
             ViewBag.LatestNews = latestNews;
             
-            return View("TrangChu", categorise);
+            return View("TrangChu", categories);
         }
         
         [HttpGet]
@@ -41,17 +51,40 @@ namespace TuThien.Controllers
             IEnumerable<Category> categories;
             if(categoryId.HasValue && categoryId.Value > 0)
             {
-                categories = await _context.Categories
+                var category = await _context.Categories
                     .Where(c => c.CategoryId == categoryId.Value)
-                    .Include(c => c.Campaigns.Where(cmp => cmp.Status == "active"))
-                    .ToListAsync();
+                    .FirstOrDefaultAsync();
+                
+                if (category != null)
+                {
+                    category.Campaigns = await _context.Campaigns
+                        .Where(c => c.CategoryId == category.CategoryId && c.Status == "active")
+                        .OrderByDescending(c => c.CreatedAt)
+                        .Take(3)
+                        .ToListAsync();
+                    
+                    categories = new List<Category> { category };
+                }
+                else
+                {
+                    categories = new List<Category>();
+                }
             }
             else
             {
                 categories = await _context.Categories
-                    .Include(c => c.Campaigns.Where(cmp => cmp.Status == "active"))
-                    .OrderBy(c=>c.Name)
+                    .OrderBy(c => c.Name)
                     .ToListAsync();
+
+                // Lấy top 3 campaigns mới nhất cho mỗi category
+                foreach (var category in categories)
+                {
+                    category.Campaigns = await _context.Campaigns
+                        .Where(c => c.CategoryId == category.CategoryId && c.Status == "active")
+                        .OrderByDescending(c => c.CreatedAt)
+                        .Take(3)
+                        .ToListAsync();
+                }
             }
             return PartialView("patiralView", categories);
         }

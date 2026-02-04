@@ -312,7 +312,7 @@ public class AdminCampaignsController : AdminBaseController
                 return Json(new { success = false, message = "Không thể xác định người dùng" });
             }
 
-            var validExcessOptions = new[] { "reserve_fund", "next_case" };
+            var validExcessOptions = new[] { "reserve_fund", "next_case", "general_fund", "extend" };
             if (!validExcessOptions.Contains(model.ExcessFundOption))
             {
                 model.ExcessFundOption = "next_case";
@@ -422,7 +422,7 @@ public class AdminCampaignsController : AdminBaseController
                 return Json(new { success = false, message = string.Join("; ", errors) });
             }
 
-            var validExcessOptions = new[] { "reserve_fund", "next_case" };
+            var validExcessOptions = new[] { "reserve_fund", "next_case", "general_fund", "extend" };
             if (!validExcessOptions.Contains(model.ExcessFundOption))
             {
                 model.ExcessFundOption = "next_case";
