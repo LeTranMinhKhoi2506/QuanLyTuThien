@@ -6,11 +6,12 @@ namespace TuThien.Models
     public class CampaignCreateViewModel
     {
         [Required(ErrorMessage = "Vui lòng nhập tiêu đề chiến dịch")]
-        [StringLength(200, ErrorMessage = "Tiêu đề không được vượt quá 200 ký tự")]
+        [StringLength(200, MinimumLength = 10, ErrorMessage = "Tiêu đề phải từ 10 đến 200 ký tự")]
         [Display(Name = "Tiêu đề chiến dịch")]
         public string Title { get; set; } = null!;
 
         [Required(ErrorMessage = "Vui lòng nhập mô tả chi tiết")]
+        [MinLength(50, ErrorMessage = "Mô tả phải có ít nhất 50 ký tự")]
         [Display(Name = "Mô tả chi tiết")]
         public string Description { get; set; } = null!;
 
