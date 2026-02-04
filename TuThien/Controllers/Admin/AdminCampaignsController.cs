@@ -130,9 +130,6 @@ public class AdminCampaignsController : AdminBaseController
             campaign.Status = "active";
             campaign.UpdatedAt = DateTime.Now;
 
-            await _context.SaveChangesAsync();
-            await LogAuditAsync("APPROVE_CAMPAIGN", "Campaigns", campaignId, oldStatus, "active");
-
             var notification = new Notification
             {
                 UserId = campaign.CreatorId,
@@ -144,6 +141,9 @@ public class AdminCampaignsController : AdminBaseController
             };
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();
+            
+            // Log audit after main save
+            await LogAuditAsync("APPROVE_CAMPAIGN", "Campaigns", campaignId, oldStatus, "active");
 
             return Json(new { success = true, message = "Phê duyệt chiến dịch thành công" });
         }
@@ -178,9 +178,6 @@ public class AdminCampaignsController : AdminBaseController
             campaign.Status = "rejected";
             campaign.UpdatedAt = DateTime.Now;
 
-            await _context.SaveChangesAsync();
-            await LogAuditAsync("REJECT_CAMPAIGN", "Campaigns", campaignId, oldStatus, "rejected");
-
             var notification = new Notification
             {
                 UserId = campaign.CreatorId,
@@ -192,6 +189,9 @@ public class AdminCampaignsController : AdminBaseController
             };
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();
+            
+            // Log audit after main save
+            await LogAuditAsync("REJECT_CAMPAIGN", "Campaigns", campaignId, oldStatus, "rejected");
 
             return Json(new { success = true, message = "Từ chối chiến dịch thành công" });
         }

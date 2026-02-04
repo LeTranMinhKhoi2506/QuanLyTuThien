@@ -52,11 +52,16 @@ public class AdminNotificationsController : AdminBaseController
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Send(string title, string message, string targetType, int? targetUserId)
+    public async Task<IActionResult> Send(string title, string message, string targetType, int? targetUserId, string? targetRole)
     {
         if (!IsAdmin())
         {
             return UnauthorizedJson();
+        }
+
+        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(message))
+        {
+            return Json(new { success = false, message = "Vui lòng nhập đầy đủ tiêu đề và nội dung thông báo!" });
         }
 
         var notifications = new List<Notification>();
@@ -77,8 +82,30 @@ public class AdminNotificationsController : AdminBaseController
                 });
             }
         }
+        else if (targetType == "role" && !string.IsNullOrWhiteSpace(targetRole))
+        {
+            var users = await _context.Users.Where(u => u.Status == "active" && u.Role == targetRole).ToListAsync();
+            foreach (var user in users)
+            {
+                notifications.Add(new Notification
+                {
+                    UserId = user.UserId,
+                    Title = title,
+                    Message = message,
+                    Type = "system",
+                    IsRead = false,
+                    CreatedAt = DateTime.Now
+                });
+            }
+        }
         else if (targetType == "single" && targetUserId.HasValue)
         {
+            var user = await _context.Users.FindAsync(targetUserId.Value);
+            if (user == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy người dùng với ID này!" });
+            }
+            
             notifications.Add(new Notification
             {
                 UserId = targetUserId.Value,
@@ -88,6 +115,15 @@ public class AdminNotificationsController : AdminBaseController
                 IsRead = false,
                 CreatedAt = DateTime.Now
             });
+        }
+        else
+        {
+            return Json(new { success = false, message = "Vui lòng chọn đối tượng nhận thông báo!" });
+        }
+
+        if (notifications.Count == 0)
+        {
+            return Json(new { success = false, message = "Không có người dùng nào phù hợp để gửi thông báo!" });
         }
 
         _context.Notifications.AddRange(notifications);
