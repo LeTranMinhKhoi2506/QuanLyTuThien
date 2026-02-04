@@ -45,5 +45,27 @@ namespace TuThien.Models
         
         [Display(Name = "Phương án xử lý quỹ dư thừa")]
         public string? ExcessFundOption { get; set; }
+
+        [Display(Name = "Chia thành nhiều giai đoạn")]
+        public bool IsPhased { get; set; }
+
+        public List<CampaignMilestoneViewModel> Milestones { get; set; } = new List<CampaignMilestoneViewModel>();
+    }
+
+    public class CampaignMilestoneViewModel
+    {
+        [Required(ErrorMessage = "Vui lòng nhập tên giai đoạn")]
+        [Display(Name = "Tên giai đoạn")]
+        public string Title { get; set; } = null!;
+
+        [Required(ErrorMessage = "Vui lòng nhập số tiền")]
+        [Range(1, double.MaxValue, ErrorMessage = "Số tiền phải lớn hơn 0")]
+        [Display(Name = "Số tiền")]
+        public decimal AmountNeeded { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng chọn thời gian kết thúc")]
+        [Display(Name = "Thời gian kết thúc")]
+        [DataType(DataType.Date)]
+        public DateTime Deadline { get; set; }
     }
 }
