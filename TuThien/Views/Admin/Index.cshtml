@@ -28,7 +28,7 @@
                 </div>
                 <div>
                     <div class="stat-value">@Model.TotalCampaigns.ToString("N0")</div>
-                    <div class="stat-label">Chiến dịch (@Model.ActiveCampaigns đang hoạt động)</div>
+                    <div class="stat-label">Chiến dịch (@Model.ActiveCampaigns hoạt động, @Model.PendingCampaigns chờ duyệt)</div>
                 </div>
             </div>
         </div>
@@ -42,7 +42,7 @@
                 </div>
                 <div>
                     <div class="stat-value">@Model.TotalDonations.ToString("N0")đ</div>
-                    <div class="stat-label">Tổng quyên góp (@Model.TotalDonationCount lượt)</div>
+                    <div class="stat-label">Tổng quyên góp thành công (@Model.TotalDonationCount lượt)</div>
                 </div>
             </div>
         </div>
@@ -155,13 +155,51 @@
 
 <div class="row g-4 mt-2">
     <!-- Monthly Chart -->
-    <div class="col-12">
-        <div class="card">
+    <div class="col-md-8">
+        <div class="card h-100">
             <div class="card-header">
                 <i class="bi bi-bar-chart me-2"></i>Thống kê quyên góp theo tháng (@Model.ChartYear)
             </div>
             <div class="card-body">
-                <canvas id="monthlyChart" height="100"></canvas>
+                <canvas id="monthlyChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Campaign Status Chart -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-pie-chart me-2"></i>Trạng thái chiến dịch
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <canvas id="campaignStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-2">
+    <!-- Category Donation Chart -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-graph-up me-2"></i>Quyên góp theo danh mục
+            </div>
+            <div class="card-body">
+                <canvas id="categoryDonationChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Category Campaign Count Chart -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-diagram-3 me-2"></i>Số chiến dịch theo danh mục
+            </div>
+            <div class="card-body">
+                <canvas id="categoryCampaignChart" height="200"></canvas>
             </div>
         </div>
     </div>
@@ -197,11 +235,37 @@
     </div>
 </div>
 
+@{
+    var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+}
+
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Monthly donations chart
-        const monthlyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyDonations));
+        // Màu sắc cho biểu đồ
+        const chartColors = [
+            'rgba(13, 110, 253, 0.8)',   // primary
+            'rgba(25, 135, 84, 0.8)',    // success
+            'rgba(220, 53, 69, 0.8)',    // danger
+            'rgba(255, 193, 7, 0.8)',    // warning
+            'rgba(13, 202, 240, 0.8)',   // info
+            'rgba(111, 66, 193, 0.8)',   // purple
+            'rgba(253, 126, 20, 0.8)',   // orange
+            'rgba(102, 16, 242, 0.8)'    // indigo
+        ];
+
+        const statusColors = {
+            'draft': 'rgba(108, 117, 125, 0.8)',       // secondary
+            'pending_approval': 'rgba(255, 193, 7, 0.8)', // warning
+            'active': 'rgba(25, 135, 84, 0.8)',       // success
+            'paused': 'rgba(13, 202, 240, 0.8)',      // info
+            'completed': 'rgba(13, 110, 253, 0.8)',   // primary
+            'rejected': 'rgba(220, 53, 69, 0.8)',     // danger
+            'locked': 'rgba(33, 37, 41, 0.8)'         // dark
+        };
+
+        // ===== 1. Biểu đồ quyên góp theo tháng =====
+        const monthlyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyDonations, jsonOptions));
         const months = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
         
         const chartData = months.map((_, index) => {
@@ -273,6 +337,124 @@
                                     return new Intl.NumberFormat('vi-VN').format(context.raw) + ' VNĐ';
                                 }
                                 return context.raw + ' lượt';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // ===== 2. Biểu đồ trạng thái chiến dịch (Pie) =====
+        const campaignStatusData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CampaignStatusStatistics, jsonOptions));
+        
+        new Chart(document.getElementById('campaignStatusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: campaignStatusData.map(s => s.statusDisplay),
+                datasets: [{
+                    data: campaignStatusData.map(s => s.count),
+                    backgroundColor: campaignStatusData.map(s => statusColors[s.status] || chartColors[0]),
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.raw / total) * 100).toFixed(1);
+                                return `${context.label}: ${context.raw} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // ===== 3. Biểu đồ quyên góp theo danh mục (Bar) =====
+        const categoryData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CategoryStatistics, jsonOptions));
+        
+        new Chart(document.getElementById('categoryDonationChart'), {
+            type: 'bar',
+            data: {
+                labels: categoryData.map(c => c.categoryName),
+                datasets: [{
+                    label: 'Tổng quyên góp (VNĐ)',
+                    data: categoryData.map(c => c.totalDonations),
+                    backgroundColor: chartColors,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return new Intl.NumberFormat('vi-VN').format(context.raw) + ' VNĐ';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            callback: function(value) {
+                                if (value >= 1000000) {
+                                    return (value / 1000000).toFixed(0) + 'M';
+                                }
+                                return new Intl.NumberFormat('vi-VN').format(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // ===== 4. Biểu đồ số chiến dịch theo danh mục (Polar Area) =====
+        new Chart(document.getElementById('categoryCampaignChart'), {
+            type: 'polarArea',
+            data: {
+                labels: categoryData.map(c => c.categoryName),
+                datasets: [{
+                    data: categoryData.map(c => c.campaignCount),
+                    backgroundColor: chartColors.map(c => c.replace('0.8', '0.6')),
+                    borderColor: chartColors,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const cat = categoryData[context.dataIndex];
+                                return [
+                                    `Số chiến dịch: ${cat.campaignCount}`,
+                                    `Lượt quyên góp: ${cat.donationCount}`
+                                ];
                             }
                         }
                     }
