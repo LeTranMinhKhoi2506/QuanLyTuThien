@@ -49,6 +49,26 @@
                 </a>
             </div>
         </div>
+        
+        <!-- News Management -->
+        <div class="sidebar-dropdown @(currentController == "AdminNews" ? "open" : "")">
+            <a class="nav-link dropdown-toggle" href="javascript:void(0)" onclick="toggleDropdown(this)">
+                <i class="bi bi-newspaper"></i>
+                <span>Tin tức</span>
+            </a>
+            <div class="sidebar-dropdown-menu">
+                <a class="nav-link @(currentController == "AdminNews" && currentAction == "Index" ? "active" : "")" 
+                   asp-controller="AdminNews" asp-action="Index">
+                    <i class="bi bi-list-ul"></i>
+                    <span>Danh sách tin tức</span>
+                </a>
+                <a class="nav-link @(currentController == "AdminNews" && currentAction == "Create" ? "active" : "")" 
+                   asp-controller="AdminNews" asp-action="Create">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Tạo tin tức mới</span>
+                </a>
+            </div>
+        </div>
     </nav>
     
     <!-- Dropdown: Quản lý tài chính -->

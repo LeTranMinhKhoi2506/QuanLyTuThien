@@ -238,12 +238,40 @@ namespace TuThien.Controllers
                     await _context.SaveChangesAsync();
                 }
                 
+                
                 TempData["SuccessMessage"] = "Chiến dịch đã được tạo thành công và đang chờ duyệt!";
                 return RedirectToAction("Index", "TrangChu"); // Redirect to Home
             }
             
             ViewData["CategoryId"] = new SelectList(_context.Categories, "CategoryId", "Name", model.CategoryId);
             return View(model);
+        }
+
+        // GET: /my-campaigns
+        [HttpGet]
+        [Route("my-campaigns")]
+        public async Task<IActionResult> MyCampaigns()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return RedirectToAction("Login", "Account", new { returnUrl = "/my-campaigns" });
+            }
+
+            var campaigns = await _context.Campaigns
+                .Include(c => c.Category)
+                .Include(c => c.Donations)
+                .Where(c => c.CreatorId == userId.Value)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
+
+            // Thống kê
+            ViewBag.TotalCampaigns = campaigns.Count;
+            ViewBag.ActiveCampaigns = campaigns.Count(c => c.Status == "active");
+            ViewBag.TotalRaised = campaigns.Sum(c => c.CurrentAmount ?? 0);
+            ViewBag.TotalDonations = campaigns.Sum(c => c.Donations?.Count ?? 0);
+
+            return View(campaigns);
         }
     }
 }

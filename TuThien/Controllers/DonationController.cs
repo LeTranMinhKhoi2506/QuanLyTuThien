@@ -909,4 +909,34 @@ public class DonationController : Controller
 
         await _context.SaveChangesAsync();
     }
+
+    /// <summary>
+    /// Lịch sử quyên góp của người dùng
+    /// Route: /my-donations
+    /// </summary>
+    [HttpGet]
+    [Route("my-donations")]
+    public async Task<IActionResult> MyDonations()
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue)
+        {
+            return RedirectToAction("Login", "Account", new { returnUrl = "/my-donations" });
+        }
+
+        var donations = await _context.Donations
+            .Include(d => d.Campaign)
+            .Where(d => d.UserId == userId.Value)
+            .OrderByDescending(d => d.DonatedAt)
+            .ToListAsync();
+
+        // Thống kê
+        ViewBag.TotalDonations = donations.Count;
+        ViewBag.SuccessfulDonations = donations.Count(d => d.PaymentStatus == "success");
+        ViewBag.TotalAmount = donations.Where(d => d.PaymentStatus == "success").Sum(d => d.Amount);
+        ViewBag.CampaignsSupported = donations.Where(d => d.PaymentStatus == "success")
+            .Select(d => d.CampaignId).Distinct().Count();
+
+        return View(donations);
+    }
 }

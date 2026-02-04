@@ -1,0 +1,435 @@
+@model TuThien.Models.CampaignUpdate
+@{
+    ViewData["Title"] = "Tạo tin tức mới";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<!-- CKEditor 5 CDN -->
+<script src="https://cdn.ckeditor.com/ckeditor5/41.1.0/classic/ckeditor.js"></script>
+
+<style>
+    .ck-editor__editable {
+        min-height: 400px;
+    }
+    .ck-editor__editable:focus {
+        border-color: #86b7fe !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+    }
+    .image-preview-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    .image-preview-item {
+        position: relative;
+        width: 120px;
+        height: 120px;
+    }
+    .image-preview-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+    .image-preview-item .remove-btn {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="@Url.Action("Index", "AdminNews")">Tin tức</a></li>
+                <li class="breadcrumb-item active">Tạo mới</li>
+            </ol>
+        </nav>
+        <h4 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Tạo tin tức mới</h4>
+    </div>
+    <a href="@Url.Action("Index", "AdminNews")" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Quay lại
+    </a>
+</div>
+
+<form id="newsForm" novalidate>
+    @Html.AntiForgeryToken()
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Main Content Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-file-text me-2"></i>Nội dung tin tức
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">
+                            Tiêu đề <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control form-control-lg" id="title" name="Title" 
+                               placeholder="Nhập tiêu đề tin tức..." required maxlength="255" />
+                        <div class="d-flex justify-content-between mt-1">
+                            <small class="text-muted">Tiêu đề ngắn gọn, súc tích</small>
+                            <small class="text-muted"><span id="titleCount">0</span>/255</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Nội dung <span class="text-danger">*</span>
+                        </label>
+                        <textarea id="content" name="Content"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Images Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-images me-2"></i>Hình ảnh đính kèm
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Thêm URL hình ảnh</label>
+                        <div class="input-group">
+                            <input type="url" class="form-control" id="imageUrlInput" 
+                                   placeholder="https://example.com/image.jpg" />
+                            <button type="button" class="btn btn-outline-primary" onclick="addImageUrl()">
+                                <i class="bi bi-plus-lg me-1"></i>Thêm
+                            </button>
+                        </div>
+                        <small class="text-muted">Nhập URL ảnh và nhấn Thêm. Hỗ trợ JPG, PNG, GIF.</small>
+                    </div>
+                    
+                    <div class="image-preview-container" id="imagePreviewContainer">
+                        <!-- Image previews will be added here -->
+                    </div>
+                    
+                    <input type="hidden" id="imageUrlsJson" name="imageUrlsJson" value="[]" />
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Settings Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-gear me-2"></i>Cài đặt
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Chiến dịch <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="campaignId" name="CampaignId" required>
+                            <option value="">-- Chọn chiến dịch --</option>
+                            @if (ViewBag.Campaigns != null)
+                            {
+                                @foreach (SelectListItem item in ViewBag.Campaigns)
+                                {
+                                    <option value="@item.Value">@item.Text</option>
+                                }
+                            }
+                        </select>
+                        <small class="text-muted">Chọn chiến dịch liên quan đến tin tức này</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Loại tin tức</label>
+                        <select class="form-select" id="type" name="Type">
+                            <option value="general" selected>Cập nhật chung</option>
+                            <option value="financial_report">Báo cáo tài chính</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions Card -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
+                            <i class="bi bi-check-lg me-2"></i>Đăng tin tức
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="previewNews()">
+                            <i class="bi bi-eye me-2"></i>Xem trước
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Help Card -->
+            <div class="card mt-4 border-0 bg-light">
+                <div class="card-body">
+                    <h6><i class="bi bi-lightbulb text-warning me-2"></i>Mẹo viết tin tức</h6>
+                    <ul class="small text-muted mb-0 ps-3">
+                        <li>Tiêu đề nên ngắn gọn, súc tích (50-100 ký tự)</li>
+                        <li>Sử dụng hình ảnh minh họa để tăng độ tin cậy</li>
+                        <li>Cập nhật thường xuyên để nhà tài trợ theo dõi</li>
+                        <li>Đính kèm hóa đơn/chứng từ nếu là báo cáo tài chính</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Xem trước tin tức</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="previewContent">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let editor;
+    let imageUrls = [];
+
+    // Initialize CKEditor
+    ClassicEditor
+        .create(document.querySelector('#content'), {
+            toolbar: {
+                items: [
+                    'heading', '|',
+                    'bold', 'italic', 'underline', 'strikethrough', '|',
+                    'bulletedList', 'numberedList', '|',
+                    'outdent', 'indent', '|',
+                    'link', 'blockQuote', 'insertTable', '|',
+                    'undo', 'redo'
+                ]
+            },
+            language: 'vi',
+            placeholder: 'Nhập nội dung tin tức tại đây...'
+        })
+        .then(newEditor => {
+            editor = newEditor;
+        })
+        .catch(error => {
+            console.error('CKEditor Error:', error);
+        });
+
+    // Title character counter
+    document.getElementById('title').addEventListener('input', function() {
+        document.getElementById('titleCount').textContent = this.value.length;
+    });
+
+    // Add image URL
+    function addImageUrl() {
+        const input = document.getElementById('imageUrlInput');
+        const url = input.value.trim();
+        
+        if (!url) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Thiếu URL',
+                text: 'Vui lòng nhập URL hình ảnh',
+                confirmButtonColor: '#ffc107'
+            });
+            return;
+        }
+
+        // Simple URL validation
+        if (!url.match(/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i) && !url.match(/^https?:\/\/.+/i)) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'URL không hợp lệ',
+                text: 'Vui lòng nhập URL hình ảnh hợp lệ',
+                confirmButtonColor: '#ffc107'
+            });
+            return;
+        }
+
+        if (imageUrls.includes(url)) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Đã tồn tại',
+                text: 'URL này đã được thêm',
+                confirmButtonColor: '#0d6efd'
+            });
+            return;
+        }
+
+        imageUrls.push(url);
+        updateImagePreviews();
+        input.value = '';
+    }
+
+    function removeImage(index) {
+        imageUrls.splice(index, 1);
+        updateImagePreviews();
+    }
+
+    function updateImagePreviews() {
+        const container = document.getElementById('imagePreviewContainer');
+        container.innerHTML = '';
+
+        imageUrls.forEach((url, index) => {
+            const div = document.createElement('div');
+            div.className = 'image-preview-item';
+            div.innerHTML = `
+                <img src="${url}" alt="Preview" onerror="this.src='https://via.placeholder.com/120?text=Error'" />
+                <button type="button" class="remove-btn" onclick="removeImage(${index})">
+                    <i class="bi bi-x"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        });
+
+        // Update hidden input
+        document.getElementById('imageUrlsJson').value = JSON.stringify(imageUrls);
+    }
+
+    // Preview news
+    function previewNews() {
+        const title = document.getElementById('title').value || 'Chưa có tiêu đề';
+        const content = editor.getData() || '<p>Chưa có nội dung</p>';
+        const type = document.getElementById('type').value;
+        const typeText = type === 'financial_report' ? 'Báo cáo tài chính' : 'Cập nhật chung';
+
+        let imagesHtml = '';
+        if (imageUrls.length > 0) {
+            imagesHtml = `
+                <hr>
+                <h6>Hình ảnh đính kèm:</h6>
+                <div class="d-flex flex-wrap gap-2">
+                    ${imageUrls.map(url => `<img src="${url}" style="max-height: 150px; border-radius: 8px;" />`).join('')}
+                </div>
+            `;
+        }
+
+        const previewHtml = `
+            <div class="mb-3">
+                <span class="badge ${type === 'financial_report' ? 'bg-success' : 'bg-info'}">${typeText}</span>
+                <small class="text-muted ms-2">${new Date().toLocaleDateString('vi-VN')}</small>
+            </div>
+            <h3>${title}</h3>
+            <div class="news-content">${content}</div>
+            ${imagesHtml}
+        `;
+
+        document.getElementById('previewContent').innerHTML = previewHtml;
+        new bootstrap.Modal(document.getElementById('previewModal')).show();
+    }
+
+    // Form submission
+    document.getElementById('newsForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const title = document.getElementById('title').value.trim();
+        const content = editor.getData();
+        const campaignId = document.getElementById('campaignId').value;
+        const type = document.getElementById('type').value;
+
+        // Validation
+        if (!campaignId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Thiếu thông tin',
+                text: 'Vui lòng chọn chiến dịch',
+                confirmButtonColor: '#ffc107'
+            });
+            return;
+        }
+
+        if (!title) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Thiếu thông tin',
+                text: 'Vui lòng nhập tiêu đề',
+                confirmButtonColor: '#ffc107'
+            });
+            return;
+        }
+
+        if (!content || content.length < 20) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Nội dung quá ngắn',
+                text: 'Vui lòng nhập nội dung đầy đủ hơn',
+                confirmButtonColor: '#ffc107'
+            });
+            return;
+        }
+
+        // Show loading
+        Swal.fire({
+            title: 'Đang đăng tin...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const formData = new FormData();
+        formData.append('CampaignId', campaignId);
+        formData.append('Title', title);
+        formData.append('Content', content);
+        formData.append('Type', type);
+        formData.append('imageUrlsJson', JSON.stringify(imageUrls));
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+        try {
+            const response = await fetch('@Url.Action("Create", "AdminNews")', {
+                method: 'POST',
+                body: formData
+            });
+
+            const res = await response.json();
+            
+            if (res.success) {
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công!',
+                    text: res.message,
+                    confirmButtonColor: '#198754'
+                });
+                window.location.href = '@Url.Action("Index", "AdminNews")';
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: res.message,
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi kết nối',
+                text: 'Đã xảy ra lỗi, vui lòng thử lại',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    });
+
+    // Enter key in image URL input
+    document.getElementById('imageUrlInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addImageUrl();
+        }
+    });
+</script>
+}

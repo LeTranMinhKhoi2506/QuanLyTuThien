@@ -17,57 +17,21 @@ public class AdminDonationsController : AdminBaseController
     /// <summary>
     /// Danh sách quyên góp
     /// </summary>
-    public async Task<IActionResult> Index(string? search, string? paymentMethod, DateTime? fromDate, DateTime? toDate, int page = 1)
+    public async Task<IActionResult> Index()
     {
         if (!IsAdmin())
         {
             return RedirectToLogin();
         }
 
-        var query = _context.Donations
+        var donations = await _context.Donations
             .Include(d => d.User)
             .Include(d => d.Campaign)
-            .AsQueryable();
-
-        if (!string.IsNullOrEmpty(search))
-        {
-            query = query.Where(d =>
-                (d.User != null && d.User.Username.Contains(search)) ||
-                d.Campaign.Title.Contains(search) ||
-                (d.TransactionCode != null && d.TransactionCode.Contains(search)));
-        }
-
-        if (!string.IsNullOrEmpty(paymentMethod))
-        {
-            query = query.Where(d => d.PaymentMethod == paymentMethod);
-        }
-
-        if (fromDate.HasValue)
-        {
-            query = query.Where(d => d.DonatedAt >= fromDate.Value);
-        }
-
-        if (toDate.HasValue)
-        {
-            query = query.Where(d => d.DonatedAt <= toDate.Value.AddDays(1));
-        }
-
-        int pageSize = 20;
-        var totalItems = await query.CountAsync();
-        var donations = await query
             .OrderByDescending(d => d.DonatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
             .ToListAsync();
 
-        ViewBag.TotalAmount = await query.SumAsync(d => d.Amount);
-        ViewBag.TotalCount = totalItems;
-        ViewBag.CurrentPage = page;
-        ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-        ViewBag.Search = search;
-        ViewBag.PaymentMethod = paymentMethod;
-        ViewBag.FromDate = fromDate;
-        ViewBag.ToDate = toDate;
+        ViewBag.TotalAmount = donations.Where(d => d.PaymentStatus == "success").Sum(d => d.Amount);
+        ViewBag.TotalCount = donations.Count;
 
         return View("~/Views/Admin/Donations.cshtml", donations);
     }
