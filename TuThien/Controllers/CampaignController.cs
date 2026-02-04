@@ -206,6 +206,22 @@ namespace TuThien.Controllers
                     UpdatedAt = DateTime.Now
                 };
 
+                // Handle Milestones (Phases)
+                if (model.IsPhased && model.Milestones != null && model.Milestones.Count > 0)
+                {
+                    foreach (var m in model.Milestones)
+                    {
+                        var milestone = new CampaignMilestone
+                        {
+                            Title = m.Title,
+                            AmountNeeded = m.AmountNeeded,
+                            Deadline = m.Deadline,
+                            Status = "pending"
+                        };
+                        campaign.CampaignMilestones.Add(milestone);
+                    }
+                }
+
                 _context.Add(campaign);
                 await _context.SaveChangesAsync();
 
