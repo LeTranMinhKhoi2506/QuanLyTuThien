@@ -586,7 +586,158 @@
                         </a>
                     </div>
                 </div>
+
+                <!-- Report Card -->
+                <div class="report-card mt-3">
+                    <h6 class="card-title">
+                        <i class="bi bi-flag me-2"></i>Báo cáo sai phạm
+                    </h6>
+                    <p class="text-muted small mb-2">Nếu bạn phát hiện chiến dịch có dấu hiệu vi phạm, hãy báo cáo để Admin xem xét.</p>
+                    @if (Context.Session.GetInt32("UserId") != null)
+                    {
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100" data-bs-toggle="modal" data-bs-target="#reportModal">
+                            <i class="bi bi-exclamation-triangle me-2"></i>Báo cáo chiến dịch
+                        </button>
+                    }
+                    else
+                    {
+                        <a href="/Account/Login?returnUrl=/Campaign/Details/@Model.CampaignId" class="btn btn-outline-secondary btn-sm w-100">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập để báo cáo
+                        </a>
+                    }
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Report Modal -->
+@if (Context.Session.GetInt32("UserId") != null)
+{
+    <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="reportModalLabel">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Báo cáo chiến dịch
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Bạn đang báo cáo chiến dịch: <strong>@Model.Title</strong>
+                    </div>
+                    <form id="reportForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="campaignId" value="@Model.CampaignId" />
+                        <div class="mb-3">
+                            <label for="reportReason" class="form-label fw-bold">Lý do báo cáo <span class="text-danger">*</span></label>
+                            <select class="form-select mb-2" id="reportReasonSelect" onchange="updateReportReason()">
+                                <option value="">-- Chọn lý do --</option>
+                                <option value="Thông tin sai sự thật">Thông tin sai sự thật</option>
+                                <option value="Lừa đảo, gian lận">Lừa đảo, gian lận</option>
+                                <option value="Sử dụng tiền sai mục đích">Sử dụng tiền sai mục đích</option>
+                                <option value="Nội dung không phù hợp">Nội dung không phù hợp</option>
+                                <option value="Vi phạm quyền riêng tư">Vi phạm quyền riêng tư</option>
+                                <option value="other">Lý do khác...</option>
+                            </select>
+                            <textarea class="form-control" id="reportReason" name="reason" rows="4" 
+                                      placeholder="Mô tả chi tiết lý do báo cáo của bạn..." 
+                                      required maxlength="1000"></textarea>
+                            <small class="text-muted">Tối đa 1000 ký tự</small>
+                        </div>
+                    </form>
+                    <div id="reportResult" class="d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-1"></i>Hủy
+                    </button>
+                    <button type="button" class="btn btn-danger" id="submitReportBtn" onclick="submitReport()">
+                        <i class="bi bi-send me-1"></i>Gửi báo cáo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function updateReportReason() {
+            var select = document.getElementById('reportReasonSelect');
+            var textarea = document.getElementById('reportReason');
+            
+            if (select.value && select.value !== 'other') {
+                textarea.value = select.value;
+            } else if (select.value === 'other') {
+                textarea.value = '';
+                textarea.focus();
+            }
+        }
+
+        function submitReport() {
+            var form = document.getElementById('reportForm');
+            var reason = document.getElementById('reportReason').value.trim();
+            var submitBtn = document.getElementById('submitReportBtn');
+            var resultDiv = document.getElementById('reportResult');
+            
+            if (!reason) {
+                resultDiv.className = 'alert alert-danger';
+                resultDiv.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>Vui lòng nhập lý do báo cáo.';
+                resultDiv.classList.remove('d-none');
+                return;
+            }
+
+            // Disable button và hiển thị loading
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang gửi...';
+
+            var formData = new FormData(form);
+
+            fetch('@Url.Action("ReportCampaign", "Campaign")', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                resultDiv.classList.remove('d-none');
+                if (data.success) {
+                    resultDiv.className = 'alert alert-success';
+                    resultDiv.innerHTML = '<i class="bi bi-check-circle me-2"></i>' + data.message;
+                    // Ẩn form và nút submit
+                    document.getElementById('reportForm').classList.add('d-none');
+                    submitBtn.classList.add('d-none');
+                    // Đổi nút Hủy thành Đóng
+                    document.querySelector('#reportModal .btn-secondary').innerHTML = '<i class="bi bi-check-lg me-1"></i>Đóng';
+                } else {
+                    resultDiv.className = 'alert alert-danger';
+                    resultDiv.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>' + data.message;
+                    // Enable lại button
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="bi bi-send me-1"></i>Gửi báo cáo';
+                }
+            })
+            .catch(error => {
+                resultDiv.classList.remove('d-none');
+                resultDiv.className = 'alert alert-danger';
+                resultDiv.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>Có lỗi xảy ra. Vui lòng thử lại.';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-send me-1"></i>Gửi báo cáo';
+            });
+        }
+
+        // Reset modal khi đóng
+        document.getElementById('reportModal')?.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('reportForm').classList.remove('d-none');
+            document.getElementById('reportForm').reset();
+            document.getElementById('reportResult').classList.add('d-none');
+            var submitBtn = document.getElementById('submitReportBtn');
+            submitBtn.classList.remove('d-none');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-send me-1"></i>Gửi báo cáo';
+            document.querySelector('#reportModal .btn-secondary').innerHTML = '<i class="bi bi-x-lg me-1"></i>Hủy';
+        });
+    </script>
+}

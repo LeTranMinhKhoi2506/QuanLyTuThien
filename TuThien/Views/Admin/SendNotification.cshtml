@@ -167,33 +167,41 @@
             if (!confirm('Bạn có chắc muốn gửi thông báo đến TẤT CẢ người dùng?')) return;
         }
             
-        let url = '@Url.Action("SendNotification", "Admin")';
         const formData = new FormData();
         formData.append('title', title);
         formData.append('message', message);
+        formData.append('targetType', targetType);
         formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
-        if (targetType === 'role') {
-            url = '@Url.Action("SendNotificationByRole", "Admin")';
-            formData.append('role', targetRoleValue);
-        } else {
-            formData.append('targetType', targetType);
-            if (targetUserId) formData.append('targetUserId', targetUserId);
+        if (targetType === 'single' && targetUserId) {
+            formData.append('targetUserId', targetUserId);
         }
-            
-        const response = await fetch(url, {
-            method: 'POST',
-            body: formData
-        });
-            
-        const result = await response.json();
+        if (targetType === 'role') {
+            formData.append('targetRole', targetRoleValue);
+        }
+
+        try {
+            const response = await fetch('@Url.Action("Send", "AdminNotifications")', {
+                method: 'POST',
+                body: formData
+            });
+                
+            const result = await response.json();
             if (result.success) {
                 alert(result.message);
                 this.reset();
+                // Reset hiển thị các field
+                document.getElementById('userIdField').style.display = 'none';
+                document.getElementById('roleField').style.display = 'none';
+                document.getElementById('targetAll').checked = true;
             } else {
-                alert(result.message);
+                alert(result.message || 'Có lỗi xảy ra!');
             }
-        });
-    </script>
-    @Html.AntiForgeryToken()
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Có lỗi xảy ra khi gửi thông báo!');
+        }
+    });
+</script>
+@Html.AntiForgeryToken()
 }

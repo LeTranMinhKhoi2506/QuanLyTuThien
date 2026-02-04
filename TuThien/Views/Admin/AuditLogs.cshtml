@@ -2,59 +2,126 @@
 @{
     ViewData["Title"] = "Nhật ký hệ thống";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    
+    // Helper function to format action names
+    string FormatActionName(string action) => action switch
+    {
+        "APPROVE_CAMPAIGN" => "Phê duyệt chiến dịch",
+        "REJECT_CAMPAIGN" => "Từ chối chiến dịch",
+        "CLOSE_CAMPAIGN" => "Đóng chiến dịch",
+        "ADMIN_CREATE_CAMPAIGN" => "Tạo chiến dịch",
+        "ADMIN_UPDATE_CAMPAIGN" => "Cập nhật chiến dịch",
+        "ADMIN_DELETE_CAMPAIGN" => "Xóa chiến dịch",
+        "ADMIN_CREATE_USER" => "Tạo người dùng",
+        "ADMIN_UPDATE_USER" => "Cập nhật người dùng",
+        "ADMIN_DELETE_USER" => "Xóa người dùng",
+        "APPROVE_DISBURSEMENT" => "Phê duyệt giải ngân",
+        "REJECT_DISBURSEMENT" => "Từ chối giải ngân",
+        "EXPORT_DONATIONS" => "Xuất báo cáo quyên góp",
+        "TEST_AUDIT" => "Test hệ thống",
+        _ => action.Replace("_", " ")
+    };
+    
+    // Helper function to format value for display
+    string FormatValue(string? jsonValue)
+    {
+        if (string.IsNullOrEmpty(jsonValue)) return "N/A";
+        
+        try
+        {
+            // Parse JSON and extract meaningful value
+            if (jsonValue.Contains("\"value\":"))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(jsonValue, "\"value\"\\s*:\\s*\"?([^\"\\}]+)\"?");
+                if (match.Success)
+                {
+                    var val = match.Groups[1].Value.Trim();
+                    // Format status values
+                    return val switch
+                    {
+                        "pending_approval" => "Chờ phê duyệt",
+                        "active" => "Đang hoạt động",
+                        "rejected" => "Đã từ chối",
+                        "completed" => "Hoàn thành",
+                        "paused" => "Tạm dừng",
+                        "locked" => "Đã khóa",
+                        "draft" => "Nháp",
+                        "pending" => "Đang chờ",
+                        "approved" => "Đã duyệt",
+                        _ => val
+                    };
+                }
+            }
+            return jsonValue;
+        }
+        catch
+        {
+            return jsonValue;
+        }
+    }
 }
 
 <div class="alert alert-info mb-4">
     <i class="bi bi-info-circle me-2"></i>
     <strong>Nhật ký hệ thống (Audit Logs)</strong> ghi lại tất cả các hành động quan trọng trong hệ thống để đảm bảo minh bạch và chống gian lận nội bộ.
+    <span class="float-end">Tổng: <strong>@(ViewBag.TotalItems ?? 0)</strong> bản ghi</span>
 </div>
 
+<!-- Filter Form -->
 <div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-funnel me-2"></i>Bộ lọc
+    </div>
     <div class="card-body">
-        <form method="get" class="row g-3">
+        <form method="get" asp-action="Index" asp-controller="AdminAudit" class="row g-3">
             <div class="col-md-2">
                 <label class="form-label">Hành động</label>
-                <select name="action" class="form-select">
-                    <option value="">Tất cả</option>
+                <select name="actionFilter" class="form-select form-select-sm">
+                    <option value="">-- Tất cả --</option>
                     @if (ViewBag.Actions != null)
                     {
-                        foreach (var action in (List<string>)ViewBag.Actions)
+                        foreach (var act in (List<string>)ViewBag.Actions)
                         {
-                            <option value="@action" selected="@(ViewBag.Action == action)">@action</option>
+                            var isSelected = ViewBag.ActionFilter == act;
+                            <option value="@act" selected="@isSelected">@FormatActionName(act)</option>
                         }
                     }
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label">Bảng</label>
-                <select name="tableName" class="form-select">
-                    <option value="">Tất cả</option>
+                <label class="form-label">Bảng dữ liệu</label>
+                <select name="tableName" class="form-select form-select-sm">
+                    <option value="">-- Tất cả --</option>
                     @if (ViewBag.Tables != null)
                     {
                         foreach (var table in (List<string>)ViewBag.Tables)
                         {
-                            <option value="@table" selected="@(ViewBag.TableName == table)">@table</option>
+                            var isSelected = ViewBag.TableName == table;
+                            <option value="@table" selected="@isSelected">@table</option>
                         }
                     }
                 </select>
             </div>
             <div class="col-md-2">
                 <label class="form-label">User ID</label>
-                <input type="number" name="userId" class="form-control" value="@ViewBag.UserId" placeholder="ID người dùng" />
+                <input type="number" name="userId" class="form-control form-control-sm" 
+                       value="@ViewBag.UserId" placeholder="ID người dùng" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">Từ ngày</label>
-                <input type="date" name="fromDate" class="form-control" value="@(((DateTime?)ViewBag.FromDate)?.ToString("yyyy-MM-dd"))" />
+                <input type="date" name="fromDate" class="form-control form-control-sm" 
+                       value="@(((DateTime?)ViewBag.FromDate)?.ToString("yyyy-MM-dd"))" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">Đến ngày</label>
-                <input type="date" name="toDate" class="form-control" value="@(((DateTime?)ViewBag.ToDate)?.ToString("yyyy-MM-dd"))" />
+                <input type="date" name="toDate" class="form-control form-control-sm" 
+                       value="@(((DateTime?)ViewBag.ToDate)?.ToString("yyyy-MM-dd"))" />
             </div>
             <div class="col-md-2 d-flex align-items-end gap-2">
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary btn-sm">
                     <i class="bi bi-search me-1"></i>Lọc
                 </button>
-                <a href="@Url.Action("AuditLogs", "Admin")" class="btn btn-outline-secondary">
+                <a href="@Url.Action("Index", "AdminAudit")" class="btn btn-outline-secondary btn-sm" title="Xóa bộ lọc">
                     <i class="bi bi-x-lg"></i>
                 </a>
             </div>
@@ -63,129 +130,158 @@
 </div>
 
 <div class="card">
-    <div class="card-header">
-        <i class="bi bi-journal-text me-2"></i>Nhật ký hệ thống
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-journal-text me-2"></i>Nhật ký hệ thống</span>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="btnTestAudit">
+            <i class="bi bi-bug me-1"></i>Test Audit Log
+        </button>
     </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover table-sm align-middle mb-0">
-                <thead class="table-light">
+    <div class="card-body">
+        <table id="auditLogsTable" class="table table-hover table-striped align-middle w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Thời gian</th>
+                    <th>Người thực hiện</th>
+                    <th>Hành động</th>
+                    <th>Bảng</th>
+                    <th>Record ID</th>
+                    <th>Giá trị cũ</th>
+                    <th>Giá trị mới</th>
+                    <th>IP</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var log in Model)
+                {
+                    var actionBadge = log.Action switch
+                    {
+                        var a when a.Contains("APPROVE") => "bg-success",
+                        var a when a.Contains("REJECT") || a.Contains("DELETE") => "bg-danger",
+                        var a when a.Contains("UPDATE") => "bg-warning text-dark",
+                        var a when a.Contains("CREATE") => "bg-info",
+                        var a when a.Contains("EXPORT") => "bg-primary",
+                        var a when a.Contains("TEST") => "bg-secondary",
+                        _ => "bg-dark"
+                    };
+                    
+                    var oldValueFormatted = FormatValue(log.OldValue);
+                    var newValueFormatted = FormatValue(log.NewValue);
+                    
                     <tr>
-                        <th>ID</th>
-                        <th>Thời gian</th>
-                        <th>Người thực hiện</th>
-                        <th>Hành động</th>
-                        <th>Bảng</th>
-                        <th>Record ID</th>
-                        <th>IP Address</th>
-                        <th>Chi tiết</th>
+                        <td><code>@log.LogId</code></td>
+                        <td data-order="@log.CreatedAt?.ToString("yyyy-MM-dd HH:mm:ss")">
+                            <small>@log.CreatedAt?.ToString("dd/MM/yyyy")</small><br/>
+                            <small class="text-muted">@log.CreatedAt?.ToString("HH:mm:ss")</small>
+                        </td>
+                        <td>
+                            @if (log.User != null)
+                            {
+                                <span class="badge bg-primary">@log.User.Username</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">System</span>
+                            }
+                        </td>
+                        <td>
+                            <span class="badge @actionBadge" title="@log.Action">
+                                @FormatActionName(log.Action)
+                            </span>
+                        </td>
+                        <td><code class="text-primary">@log.TableName</code></td>
+                        <td><code>@log.RecordId</code></td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(log.OldValue))
+                            {
+                                <span class="badge bg-light text-danger border" title="@log.OldValue">
+                                    @oldValueFormatted
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(log.NewValue))
+                            {
+                                <span class="badge bg-light text-success border" title="@log.NewValue">
+                                    @newValueFormatted
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
+                        <td><small class="text-muted">@log.IpAddress</small></td>
                     </tr>
-                </thead>
-                <tbody>
-                    @if (Model.Count == 0)
-                    {
-                        <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">
-                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                Không có nhật ký nào
-                            </td>
-                        </tr>
-                    }
-                    @foreach (var log in Model)
-                    {
-                        <tr>
-                            <td><small class="text-muted">@log.LogId</small></td>
-                            <td>
-                                <small>@log.CreatedAt?.ToString("dd/MM/yyyy HH:mm:ss")</small>
-                            </td>
-                            <td>
-                                @if (log.User != null)
-                                {
-                                    <span class="badge bg-primary">@log.User.Username</span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">System</span>
-                                }
-                            </td>
-                            <td>
-                                @{
-                                    var actionBadge = log.Action switch
-                                    {
-                                        var a when a.Contains("APPROVE") => "bg-success",
-                                        var a when a.Contains("REJECT") => "bg-danger",
-                                        var a when a.Contains("DELETE") => "bg-danger",
-                                        var a when a.Contains("UPDATE") => "bg-warning text-dark",
-                                        var a when a.Contains("CREATE") => "bg-info",
-                                        _ => "bg-secondary"
-                                    };
-                                }
-                                <span class="badge @actionBadge">@log.Action</span>
-                            </td>
-                            <td><code>@log.TableName</code></td>
-                            <td><code>@log.RecordId</code></td>
-                            <td><small class="text-muted">@log.IpAddress</small></td>
-                            <td>
-                                @if (!string.IsNullOrEmpty(log.OldValue) || !string.IsNullOrEmpty(log.NewValue))
-                                {
-                                    <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="modal" data-bs-target="#logModal@(log.LogId)">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                    
-                                    <!-- Modal -->
-                                    <div class="modal fade" id="logModal@(log.LogId)" tabindex="-1">
-                                        <div class="modal-dialog modal-lg">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Chi tiết thay đổi - Log #@log.LogId</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <div class="row">
-                                                        <div class="col-md-6">
-                                                            <h6 class="text-danger">Giá trị cũ</h6>
-                                                            <pre class="bg-light p-3 rounded" style="max-height: 300px; overflow: auto;">@(log.OldValue ?? "N/A")</pre>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <h6 class="text-success">Giá trị mới</h6>
-                                                            <pre class="bg-light p-3 rounded" style="max-height: 300px; overflow: auto;">@(log.NewValue ?? "N/A")</pre>
-                                                        </div>
-                                                    </div>
-                                                    <hr>
-                                                    <dl class="row mb-0">
-                                                        <dt class="col-sm-3">User Agent</dt>
-                                                        <dd class="col-sm-9"><small class="text-muted">@log.UserAgent</small></dd>
-                                                    </dl>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">-</span>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                }
+            </tbody>
+        </table>
     </div>
-    
-    @if (ViewBag.TotalPages > 1)
-    {
-        <div class="card-footer">
-            <nav>
-                <ul class="pagination pagination-sm justify-content-center mb-0">
-                    @for (int i = Math.Max(1, ViewBag.CurrentPage - 3); i <= Math.Min((int)ViewBag.TotalPages, ViewBag.CurrentPage + 3); i++)
-                    {
-                        <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
-                            <a class="page-link" href="?page=@i&action=@ViewBag.Action&tableName=@ViewBag.TableName&userId=@ViewBag.UserId&fromDate=@(((DateTime?)ViewBag.FromDate)?.ToString("yyyy-MM-dd"))&toDate=@(((DateTime?)ViewBag.ToDate)?.ToString("yyyy-MM-dd"))">@i</a>
-                        </li>
-                    }
-                </ul>
-            </nav>
-        </div>
-    }
 </div>
+
+@section Scripts {
+@Html.AntiForgeryToken()
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    $('#auditLogsTable').DataTable({
+        order: [[0, 'desc']], // Sort by ID descending
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Tất cả"]],
+        language: {
+            search: "Tìm kiếm:",
+            lengthMenu: "Hiển thị _MENU_ bản ghi",
+            info: "Hiển thị _START_ đến _END_ trong tổng số _TOTAL_ bản ghi",
+            infoEmpty: "Không có bản ghi nào",
+            infoFiltered: "(lọc từ _MAX_ bản ghi)",
+            paginate: {
+                first: "Đầu",
+                last: "Cuối",
+                next: "Sau",
+                previous: "Trước"
+            },
+            zeroRecords: "Không tìm thấy bản ghi phù hợp",
+            emptyTable: "Không có dữ liệu trong bảng"
+        },
+        columnDefs: [
+            { orderable: false, targets: [6, 7] } // Disable sorting on Old/New value columns
+        ],
+        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip'
+    });
+    
+    // Test Audit Log button
+    document.getElementById('btnTestAudit').addEventListener('click', async function() {
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang test...';
+        
+        try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            const response = await fetch('@Url.Action("TestLog", "AdminAudit")', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': token
+                }
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert('Lỗi: ' + result.message);
+            }
+        } catch (error) {
+            alert('Lỗi kết nối: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-bug me-1"></i>Test Audit Log';
+        }
+    });
+});
+</script>
+}

@@ -280,5 +280,56 @@ namespace TuThien.Controllers
 
             return View(campaigns);
         }
+
+        // POST: Campaign/ReportCampaign
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReportCampaign(int campaignId, string reason)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập để báo cáo sai phạm." });
+            }
+
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                return Json(new { success = false, message = "Vui lòng nhập lý do báo cáo." });
+            }
+
+            // Kiểm tra chiến dịch tồn tại
+            var campaign = await _context.Campaigns.FindAsync(campaignId);
+            if (campaign == null)
+            {
+                return Json(new { success = false, message = "Chiến dịch không tồn tại." });
+            }
+
+            // Kiểm tra người dùng đã báo cáo chiến dịch này chưa
+            var existingReport = await _context.Reports
+                .FirstOrDefaultAsync(r => r.ReporterId == userId.Value 
+                                       && r.TargetId == campaignId 
+                                       && r.TargetType == "campaign"
+                                       && r.Status == "pending");
+            if (existingReport != null)
+            {
+                return Json(new { success = false, message = "Bạn đã báo cáo chiến dịch này rồi. Vui lòng chờ Admin xử lý." });
+            }
+
+            // Tạo báo cáo mới
+            var report = new Report
+            {
+                ReporterId = userId.Value,
+                TargetId = campaignId,
+                TargetType = "campaign",
+                Reason = reason.Trim(),
+                Status = "pending",
+                CreatedAt = DateTime.Now
+            };
+
+            _context.Reports.Add(report);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Báo cáo đã được gửi thành công. Admin sẽ xem xét và xử lý." });
+        }
     }
 }

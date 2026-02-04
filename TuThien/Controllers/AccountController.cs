@@ -353,7 +353,7 @@ namespace TuThien.Controllers
 
                             await _context.SaveChangesAsync();
 
-                            TempData["SuccessMessage"] = "Đổi mật khẩu thành công!";
+                        TempData["SuccessMessage"] = "Đổi mật khẩu thành công!";
                             _logger.LogInformation($"User {user.Username} changed password");
                         }
                         catch (Exception ex)
@@ -364,5 +364,119 @@ namespace TuThien.Controllers
 
                         return RedirectToAction(nameof(Profile));
                     }
-                }
+
+        // GET: /Account/Notifications
+        [HttpGet]
+        public async Task<IActionResult> Notifications()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return RedirectToAction(nameof(Login));
             }
+
+            var notifications = await _context.Notifications
+                .Where(n => n.UserId == userId.Value)
+                .OrderByDescending(n => n.CreatedAt)
+                .Take(50)
+                .ToListAsync();
+
+            return View(notifications);
+        }
+
+        // GET: /Account/GetNotifications (API for dropdown)
+        [HttpGet]
+        public async Task<IActionResult> GetNotifications()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return Json(new { success = false, message = "Chưa đăng nhập" });
+            }
+
+            var notifications = await _context.Notifications
+                .Where(n => n.UserId == userId.Value)
+                .OrderByDescending(n => n.CreatedAt)
+                .Take(10)
+                .Select(n => new
+                {
+                    id = n.NotificationId,
+                    title = n.Title,
+                    message = n.Message != null && n.Message.Length > 60 ? n.Message.Substring(0, 60) + "..." : n.Message,
+                    type = n.Type ?? "system",
+                    isRead = n.IsRead ?? false,
+                    createdAt = n.CreatedAt,
+                    timeAgo = GetTimeAgo(n.CreatedAt)
+                })
+                .ToListAsync();
+
+            var unreadCount = await _context.Notifications
+                .Where(n => n.UserId == userId.Value && (n.IsRead == null || n.IsRead == false))
+                .CountAsync();
+
+            return Json(new { success = true, notifications, unreadCount });
+        }
+
+        // POST: /Account/MarkNotificationRead
+        [HttpPost]
+        public async Task<IActionResult> MarkNotificationRead(int id)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return Json(new { success = false, message = "Chưa đăng nhập" });
+            }
+
+            var notification = await _context.Notifications
+                .FirstOrDefaultAsync(n => n.NotificationId == id && n.UserId == userId.Value);
+
+            if (notification != null)
+            {
+                notification.IsRead = true;
+                await _context.SaveChangesAsync();
+            }
+
+            return Json(new { success = true });
+        }
+
+        // POST: /Account/MarkAllNotificationsRead
+        [HttpPost]
+        public async Task<IActionResult> MarkAllNotificationsRead()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return Json(new { success = false, message = "Chưa đăng nhập" });
+            }
+
+            var notifications = await _context.Notifications
+                .Where(n => n.UserId == userId.Value && (n.IsRead == null || n.IsRead == false))
+                .ToListAsync();
+
+            foreach (var n in notifications)
+            {
+                n.IsRead = true;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = $"Đã đánh dấu {notifications.Count} thông báo là đã đọc" });
+        }
+
+        // Helper method to get time ago string
+        private static string GetTimeAgo(DateTime? dateTime)
+        {
+            if (!dateTime.HasValue) return "";
+
+            var timeSpan = DateTime.Now - dateTime.Value;
+
+            if (timeSpan.TotalMinutes < 1) return "Vừa xong";
+            if (timeSpan.TotalMinutes < 60) return $"{(int)timeSpan.TotalMinutes} phút trước";
+            if (timeSpan.TotalHours < 24) return $"{(int)timeSpan.TotalHours} giờ trước";
+            if (timeSpan.TotalDays < 7) return $"{(int)timeSpan.TotalDays} ngày trước";
+            if (timeSpan.TotalDays < 30) return $"{(int)(timeSpan.TotalDays / 7)} tuần trước";
+            if (timeSpan.TotalDays < 365) return $"{(int)(timeSpan.TotalDays / 30)} tháng trước";
+            return $"{(int)(timeSpan.TotalDays / 365)} năm trước";
+        }
+    }
+}

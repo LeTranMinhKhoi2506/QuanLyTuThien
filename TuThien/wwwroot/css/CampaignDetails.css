@@ -243,7 +243,7 @@
     background: linear-gradient(to right, #f0fff4 0%, white 20%);
 }
 
-/* Active Milestone (?ang ti?n hành) */
+/* Active Milestone (?ang ti?n hï¿½nh) */
 .timeline-item.active .timeline-marker {
     background: linear-gradient(135deg, #ffc107 0%, #ffeb3b 100%);
     border-color: #ffc107;
@@ -269,7 +269,7 @@
     background: linear-gradient(to right, #fffef5 0%, white 20%);
 }
 
-/* Locked Milestone (ch?a m? khóa) */
+/* Locked Milestone (ch?a m? khï¿½a) */
 .timeline-item.locked .timeline-marker {
     background: #e9ecef;
     border-color: #dee2e6;
@@ -868,4 +868,70 @@
     .amount-raised strong {
         font-size: 1.5rem;
     }
+}
+
+/* ==================== REPORT CARD ==================== */
+.report-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f8d7da;
+}
+
+.report-card .card-title {
+    color: #dc3545;
+}
+
+.report-card .btn-outline-danger {
+    border-width: 2px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.report-card .btn-outline-danger:hover {
+    background: #dc3545;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+/* Report Modal */
+#reportModal .modal-content {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+#reportModal .modal-header {
+    border-radius: 16px 16px 0 0;
+    border-bottom: none;
+}
+
+#reportModal .modal-body {
+    padding: 1.5rem;
+}
+
+#reportModal .modal-footer {
+    border-top: 1px solid #e9ecef;
+    padding: 1rem 1.5rem;
+}
+
+#reportModal textarea {
+    resize: none;
+    border-radius: 8px;
+}
+
+#reportModal textarea:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+#reportModal .form-select {
+    border-radius: 8px;
+}
+
+#reportModal .form-select:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
 }
