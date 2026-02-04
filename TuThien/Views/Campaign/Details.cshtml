@@ -350,7 +350,10 @@
                                         IsAnonymous = g.Key.IsAnonymous,
                                         TotalAmount = g.Sum(d => d.Amount),
                                         DonationCount = g.Count(),
-                                        LastDonationDate = g.Max(d => d.DonatedAt)
+                                        LastDonationDate = g.Max(d => d.DonatedAt),
+                                        Message = g.OrderByDescending(d => d.DonatedAt)
+                                                   .Select(d => d.Message)
+                                                   .FirstOrDefault(m => !string.IsNullOrEmpty(m))
                                     })
                                     .OrderByDescending(d => d.TotalAmount)
                                     .ToList();
@@ -399,6 +402,12 @@
                                                 <p class="text-muted mb-0">
                                                     Lần gần nhất: @donor.LastDonationDate?.ToString("dd/MM/yyyy HH:mm")
                                                 </p>
+                                                @if (!string.IsNullOrEmpty(donor.Message))
+                                                {
+                                                    <div class="mt-1 small text-dark fst-italic">
+                                                        <i class="bi bi-chat-quote me-1 text-muted"></i>"@donor.Message"
+                                                    </div>
+                                                }
                                             </div>
                                             <div class="donor-amount">
                                                 <strong>@String.Format("{0:N0}", donor.TotalAmount) ₫</strong>
@@ -692,6 +701,14 @@
 
 @section Scripts {
     <script>
+        // Move the modal to the body to ensure it appears above all other elements (z-index fix)
+        document.addEventListener('DOMContentLoaded', function() {
+            var reportModal = document.getElementById('reportModal');
+            if (reportModal) {
+                document.body.appendChild(reportModal);
+            }
+        });
+
         function updateReportReason() {
             var select = document.getElementById('reportReasonSelect');
             var textarea = document.getElementById('reportReason');
@@ -737,7 +754,8 @@
                     document.getElementById('reportForm').classList.add('d-none');
                     submitBtn.classList.add('d-none');
                     // Đổi nút Hủy thành Đóng
-                    document.querySelector('#reportModal .btn-secondary').innerHTML = '<i class="bi bi-check-lg me-1"></i>Đóng';
+                    var cancelBtn = document.querySelector('#reportModal .btn-secondary');
+                    if(cancelBtn) cancelBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Đóng';
                 } else {
                     resultDiv.className = 'alert alert-danger';
                     resultDiv.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>' + data.message;
