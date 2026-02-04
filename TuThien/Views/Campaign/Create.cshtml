@@ -116,6 +116,57 @@
                             <small class="text-muted">Lựa chọn cách xử lý nếu số tiền quyên góp vượt quá mục tiêu.</small>
                         </div>
 
+                        <div class="mb-4 form-check form-switch">
+                            <input asp-for="IsPhased" class="form-check-input" type="checkbox" id="chkIsPhased">
+                            <label class="form-check-label fw-bold" for="chkIsPhased">Chia thành nhiều giai đoạn (Milestones)</label>
+                            <small class="d-block text-muted">Cho phép chia nhỏ mục tiêu và thời gian thành từng giai đoạn cụ thể.</small>
+                        </div>
+
+                        <div id="milestonesSection" class="mb-4 p-4 bg-light rounded-3 border @(Model.IsPhased ? "" : "d-none")">
+                            <h5 class="text-primary-custom mb-3"><i class="bi bi-flag me-2"></i>Các giai đoạn chiến dịch</h5>
+                            <div class="alert alert-info small mb-3">
+                                <i class="bi bi-info-circle me-1"></i> Tổng số tiền các giai đoạn phải bằng <strong>số tiền mục tiêu</strong>. Thời gian các giai đoạn phải liên tiếp và kết thúc trước ngày kết thúc chiến dịch.
+                            </div>
+                            
+                            <div id="milestonesContainer">
+                                @if (Model.Milestones != null && Model.Milestones.Count > 0)
+                                {
+                                    for (int i = 0; i < Model.Milestones.Count; i++)
+                                    {
+                                        <div class="row g-2 mb-2 milestone-row">
+                                            <div class="col-md-4">
+                                                <label class="small text-muted">Tên giai đoạn</label>
+                                                <input name="Milestones[@i].Title" class="form-control" placeholder="Giai đoạn @(i + 1)" required value="@Model.Milestones[i].Title" />
+                                                <span class="text-danger small field-validation-valid" data-valmsg-for="Milestones[@i].Title" data-valmsg-replace="true"></span>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="small text-muted">Số tiền</label>
+                                                <input name="Milestones[@i].AmountNeeded" class="form-control milestone-amount" type="number" placeholder="Số tiền" required value="@Model.Milestones[i].AmountNeeded" />
+                                                <span class="text-danger small field-validation-valid" data-valmsg-for="Milestones[@i].AmountNeeded" data-valmsg-replace="true"></span>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="small text-muted">Kết thúc</label>
+                                                <input name="Milestones[@i].Deadline" class="form-control milestone-deadline" type="date" required value="@Model.Milestones[i].Deadline.ToString("yyyy-MM-dd")" />
+                                                <span class="text-danger small field-validation-valid" data-valmsg-for="Milestones[@i].Deadline" data-valmsg-replace="true"></span>
+                                            </div>
+                                            <div class="col-md-1 text-end d-flex align-items-end justify-content-end">
+                                                <button type="button" class="btn btn-outline-danger btn-sm remove-milestone">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                            
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="btnAddMilestone">
+                                <i class="bi bi-plus-circle me-1"></i>Thêm giai đoạn
+                            </button>
+                            <div class="mt-2 fw-bold text-end text-primary-custom">
+                                Tổng tiền: <span id="totalMilestoneAmount">0</span> đ / <span id="displayTargetAmount">0</span> đ
+                            </div>
+                        </div>
+
                         <!-- Images -->
                         <h5 class="text-primary-custom mb-3 border-bottom pb-2 mt-5">3. Hình ảnh</h5>
 
@@ -205,6 +256,163 @@
                 const buttons = document.querySelectorAll('.remove-doc');
                 buttons.forEach(btn => {
                     btn.disabled = rows.length === 1;
+                });
+            }
+        });
+
+        // Campaign Phases Script
+        document.addEventListener('DOMContentLoaded', function() {
+            const chkIsPhased = document.getElementById('chkIsPhased');
+            const milestonesSection = document.getElementById('milestonesSection');
+            const milestonesContainer = document.getElementById('milestonesContainer');
+            const btnAddMilestone = document.getElementById('btnAddMilestone');
+            const targetAmountInput = document.getElementById('TargetAmount');
+            const displayTargetSpan = document.getElementById('displayTargetAmount');
+            const totalMilestoneSpan = document.getElementById('totalMilestoneAmount');
+            
+            // Toggle Section
+            if(chkIsPhased) {
+                // Initialize state on load
+                if(chkIsPhased.checked) {
+                    milestonesSection.classList.remove('d-none');
+                    if(milestonesContainer.children.length === 0) {
+                        addMilestoneRow(); // Add first row only if empty
+                    } else {
+                        calculateTotal(); // Recalculate if existing rows
+                    }
+                }
+
+                chkIsPhased.addEventListener('change', function() {
+                    if(this.checked) {
+                        milestonesSection.classList.remove('d-none');
+                        if(milestonesContainer.children.length === 0) {
+                            addMilestoneRow(); // Add first row if empty
+                        }
+                    } else {
+                        milestonesSection.classList.add('d-none');
+                    }
+                });
+            }
+
+            // Update Target Display
+            if(targetAmountInput) {
+                targetAmountInput.addEventListener('input', function() {
+                    displayTargetSpan.textContent = Number(this.value).toLocaleString('vi-VN');
+                });
+            }
+
+            // Add Milestone Row
+            if(btnAddMilestone) {
+                btnAddMilestone.addEventListener('click', addMilestoneRow);
+            }
+
+            function addMilestoneRow() {
+                const index = milestonesContainer.children.length;
+                const row = document.createElement('div');
+                row.className = 'row g-2 mb-2 milestone-row';
+                row.innerHTML = `
+                    <div class="col-md-4">
+                        <label class="small text-muted">Tên giai đoạn</label>
+                        <input name="Milestones[${index}].Title" class="form-control" placeholder="Giai đoạn ${index + 1}" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted">Số tiền</label>
+                        <input name="Milestones[${index}].AmountNeeded" class="form-control milestone-amount" type="number" placeholder="Số tiền" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="small text-muted">Kết thúc</label>
+                        <input name="Milestones[${index}].Deadline" class="form-control milestone-deadline" type="date" required />
+                    </div>
+                    <div class="col-md-1 text-end d-flex align-items-end justify-content-end">
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-milestone">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                `;
+                milestonesContainer.appendChild(row);
+                updateMilestoneIndices();
+            }
+
+            // Event Delegation for Dynamic Elements
+            if(milestonesContainer) {
+                milestonesContainer.addEventListener('click', function(e) {
+                    if (e.target.closest('.remove-milestone')) {
+                        const row = e.target.closest('.milestone-row');
+                        row.remove();
+                        updateMilestoneIndices();
+                        calculateTotal();
+                    }
+                });
+
+                milestonesContainer.addEventListener('input', function(e) {
+                    if(e.target.classList.contains('milestone-amount')) {
+                        calculateTotal();
+                    }
+                });
+            }
+
+            function updateMilestoneIndices() {
+                const rows = milestonesContainer.querySelectorAll('.milestone-row');
+                rows.forEach((row, index) => {
+                    row.querySelector('input[name$=".Title"]').name = `Milestones[${index}].Title`;
+                    row.querySelector('input[name$=".AmountNeeded"]').name = `Milestones[${index}].AmountNeeded`;
+                    row.querySelector('input[name$=".Deadline"]').name = `Milestones[${index}].Deadline`;
+                });
+                calculateTotal();
+            }
+
+            function calculateTotal() {
+                let total = 0;
+                const inputs = milestonesContainer.querySelectorAll('.milestone-amount');
+                inputs.forEach(input => {
+                    total += Number(input.value) || 0;
+                });
+                totalMilestoneSpan.textContent = total.toLocaleString('vi-VN');
+                
+                // Visual validation
+                const target = Number(targetAmountInput.value) || 0;
+                if(total !== target) {
+                    totalMilestoneSpan.classList.add('text-danger');
+                    totalMilestoneSpan.classList.remove('text-success');
+                } else {
+                    totalMilestoneSpan.classList.remove('text-danger');
+                    totalMilestoneSpan.classList.add('text-success');
+                }
+            }
+            
+            // Client-side Form Validation
+            const form = document.querySelector('form');
+            if(form) {
+                form.addEventListener('submit', function(e) {
+                    if(chkIsPhased && chkIsPhased.checked) {
+                        const target = Number(targetAmountInput.value) || 0;
+                        let total = 0;
+                        const amounts = milestonesContainer.querySelectorAll('.milestone-amount');
+                        amounts.forEach(i => total += Number(i.value) || 0);
+
+                        if(total !== target) {
+                            e.preventDefault();
+                            alert(`Tổng tiền các giai đoạn (${total.toLocaleString()}) phải bằng tiền mục tiêu (${target.toLocaleString()})!`);
+                            return;
+                        }
+
+                        // Date Validation
+                        const deadlines = Array.from(milestonesContainer.querySelectorAll('.milestone-deadline')).map(i => new Date(i.value));
+                        const campaignEnd = new Date(document.getElementById('EndDate').value);
+
+                        for(let i = 0; i < deadlines.length; i++) {
+                            if(deadlines[i] > campaignEnd) {
+                                e.preventDefault();
+                                alert(`Giai đoạn ${i+1} kết thúc sau ngày kết thúc chiến dịch!`);
+                                return;
+                            }
+                            if(i > 0 && deadlines[i] < deadlines[i - 1]) {
+                                e.preventDefault();
+                                alert(`Giai đoạn ${i+1} phải kết thúc sau giai đoạn ${i}!`);
+                                return;
+                            }
+                        }
+                    }
                 });
             }
         });

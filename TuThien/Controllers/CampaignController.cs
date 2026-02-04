@@ -144,8 +144,63 @@ namespace TuThien.Controllers
                     UpdatedAt = DateTime.Now
                 };
 
+                // Validate Phases if enabled
+                if (model.IsPhased)
+                {
+                    if (model.Milestones == null || !model.Milestones.Any())
+                    {
+                        ModelState.AddModelError("IsPhased", "Vui lòng thêm ít nhất một giai đoạn.");
+                        ViewData["CategoryId"] = new SelectList(_context.Categories, "CategoryId", "Name", model.CategoryId);
+                        return View(model);
+                    }
+
+                    if (model.Milestones.Sum(m => m.AmountNeeded) != model.TargetAmount)
+                    {
+                        ModelState.AddModelError("TargetAmount", "Tổng tiền các giai đoạn phải bằng số tiền mục tiêu.");
+                        ViewData["CategoryId"] = new SelectList(_context.Categories, "CategoryId", "Name", model.CategoryId);
+                        return View(model);
+                    }
+                    
+                    for (int i = 0; i < model.Milestones.Count; i++)
+                    {
+                        if (model.Milestones[i].Deadline > model.EndDate)
+                        {
+                            ModelState.AddModelError($"Milestones[{i}].Deadline", $"Giai đoạn {i + 1} kết thúc sau ngày kết thúc chiến dịch.");
+                        }
+                        if (i > 0 && model.Milestones[i].Deadline < model.Milestones[i - 1].Deadline)
+                        {
+                            ModelState.AddModelError($"Milestones[{i}].Deadline", $"Giai đoạn {i + 1} phải kết thúc sau giai đoạn {i}.");
+                        }
+                    }
+
+                    if (!ModelState.IsValid)
+                    {
+                        ViewData["CategoryId"] = new SelectList(_context.Categories, "CategoryId", "Name", model.CategoryId);
+                        return View(model);
+                    }
+                }
+
                 _context.Add(campaign);
                 await _context.SaveChangesAsync();
+
+                // Save Milestones if Valid
+                if (model.IsPhased && model.Milestones != null)
+                {
+                    foreach (var milestone in model.Milestones)
+                    {
+                        var campaignMilestone = new CampaignMilestone
+                        {
+                            CampaignId = campaign.CampaignId,
+                            Title = milestone.Title,
+                            AmountNeeded = milestone.AmountNeeded,
+                            Deadline = milestone.Deadline,
+                            Status = "pending"
+                        };
+                        _context.Add(campaignMilestone);
+                    }
+                    await _context.SaveChangesAsync();
+                }
+
 
                 // Handle Multiple Verification Documents
                 if (model.VerificationDocuments != null && model.VerificationDocuments.Count > 0)
