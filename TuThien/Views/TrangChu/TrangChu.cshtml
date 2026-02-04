@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "TrangChu";
+    var latestNews = ViewBag.LatestNews as List<TuThien.Models.CampaignUpdate>;
 }
 
 <link rel="stylesheet" href="~/css/TrangChu.css" asp-append-version="true" />
@@ -12,6 +13,93 @@
     <div id="campaign-list-container">
        @await Html.PartialAsync("patiralView", Model)
     </div>
+
+    <!-- Tin tức mới nhất -->
+    @if (latestNews != null && latestNews.Any())
+    {
+        <div class="latest-news-section mt-5">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="bi bi-newspaper me-2"></i>Tin tức mới nhất
+                </h2>
+                <a href="@Url.Action("Index", "News")" class="btn btn-outline-primary">
+                    Xem tất cả <i class="bi bi-arrow-right ms-2"></i>
+                </a>
+            </div>
+
+            <div class="row g-4">
+                @foreach (var news in latestNews)
+                {
+                    var firstImage = "";
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(news.ImageUrls))
+                        {
+                            var images = System.Text.Json.JsonSerializer.Deserialize<List<string>>(news.ImageUrls);
+                            firstImage = images?.FirstOrDefault() ?? "";
+                        }
+                    }
+                    catch { }
+
+                    var newsThumb = string.IsNullOrEmpty(firstImage) 
+                        ? (news.Campaign?.ThumbnailUrl ?? Url.Content("~/Images/DefaultPic.png"))
+                        : firstImage;
+
+                    var excerpt = news.Content?.Length > 120 
+                        ? System.Text.RegularExpressions.Regex.Replace(news.Content.Substring(0, 120), "<.*?>", "") + "..." 
+                        : System.Text.RegularExpressions.Regex.Replace(news.Content ?? "", "<.*?>", "");
+
+                    <div class="col-lg-4 col-md-6">
+                        <article class="news-card-home" onclick="location.href='@Url.Action("Details", "News", new { id = news.UpdateId })'">
+                            <div class="news-image-wrapper">
+                                <img src="@newsThumb" alt="@news.Title" class="news-image"
+                                     onerror="this.src='@Url.Content("~/Images/DefaultPic.png")'" />
+                                
+                                <div class="news-type-badge">
+                                    @if (news.Type == "financial_report")
+                                    {
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-file-earmark-bar-graph me-1"></i>Báo cáo TC
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary">
+                                            <i class="bi bi-newspaper me-1"></i>Tin tức
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="news-content-home">
+                                @if (news.Campaign?.Category != null)
+                                {
+                                    <span class="news-category">
+                                        <i class="bi bi-tag-fill me-1"></i>@news.Campaign.Category.Name
+                                    </span>
+                                }
+
+                                <h4 class="news-title-home">@news.Title</h4>
+
+                                <p class="news-excerpt-home">@excerpt</p>
+
+                                <div class="news-meta-home">
+                                    <span class="meta-item">
+                                        <i class="bi bi-person-circle me-1"></i>
+                                        @(news.Author?.Username ?? "Admin")
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="bi bi-calendar3 me-1"></i>
+                                        @news.CreatedAt?.ToString("dd/MM/yyyy")
+                                    </span>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                }
+            </div>
+        </div>
+    }
 </div>
 
 @section Scripts {

@@ -113,37 +113,45 @@ public class AdminCampaignsController : AdminBaseController
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Approve(int campaignId, string? note)
     {
-        if (!IsAdmin())
+        try
         {
-            return UnauthorizedJson();
+            if (!IsAdmin())
+            {
+                return UnauthorizedJson();
+            }
+
+            var campaign = await _context.Campaigns.FindAsync(campaignId);
+            if (campaign == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy chiến dịch" });
+            }
+
+            var oldStatus = campaign.Status;
+            campaign.Status = "active";
+            campaign.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            await LogAuditAsync("APPROVE_CAMPAIGN", "Campaigns", campaignId, oldStatus, "active");
+
+            var notification = new Notification
+            {
+                UserId = campaign.CreatorId,
+                Title = "Chiến dịch được phê duyệt",
+                Message = $"Chiến dịch \"{campaign.Title}\" của bạn đã được phê duyệt và đang hoạt động.",
+                Type = "campaign_update",
+                IsRead = false,
+                CreatedAt = DateTime.Now
+            };
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Phê duyệt chiến dịch thành công" });
         }
-
-        var campaign = await _context.Campaigns.FindAsync(campaignId);
-        if (campaign == null)
+        catch (Exception ex)
         {
-            return Json(new { success = false, message = "Không tìm thấy chiến dịch" });
+            _logger.LogError(ex, "Error approving campaign {CampaignId}", campaignId);
+            return Json(new { success = false, message = "Lỗi: " + ex.Message + (ex.InnerException != null ? " (" + ex.InnerException.Message + ")" : "") });
         }
-
-        var oldStatus = campaign.Status;
-        campaign.Status = "active";
-        campaign.UpdatedAt = DateTime.Now;
-
-        await _context.SaveChangesAsync();
-        await LogAuditAsync("APPROVE_CAMPAIGN", "Campaigns", campaignId, oldStatus, "active");
-
-        var notification = new Notification
-        {
-            UserId = campaign.CreatorId,
-            Title = "Chiến dịch được phê duyệt",
-            Message = $"Chiến dịch \"{campaign.Title}\" của bạn đã được phê duyệt và đang hoạt động.",
-            Type = "campaign_update",
-            IsRead = false,
-            CreatedAt = DateTime.Now
-        };
-        _context.Notifications.Add(notification);
-        await _context.SaveChangesAsync();
-
-        return Json(new { success = true, message = "Phê duyệt chiến dịch thành công" });
     }
 
     /// <summary>
@@ -153,37 +161,45 @@ public class AdminCampaignsController : AdminBaseController
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Reject(int campaignId, string note)
     {
-        if (!IsAdmin())
+        try
         {
-            return UnauthorizedJson();
+            if (!IsAdmin())
+            {
+                return UnauthorizedJson();
+            }
+
+            var campaign = await _context.Campaigns.FindAsync(campaignId);
+            if (campaign == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy chiến dịch" });
+            }
+
+            var oldStatus = campaign.Status;
+            campaign.Status = "rejected";
+            campaign.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            await LogAuditAsync("REJECT_CAMPAIGN", "Campaigns", campaignId, oldStatus, "rejected");
+
+            var notification = new Notification
+            {
+                UserId = campaign.CreatorId,
+                Title = "Chiến dịch bị từ chối",
+                Message = $"Chiến dịch \"{campaign.Title}\" của bạn đã bị từ chối. Lý do: {note}",
+                Type = "campaign_update",
+                IsRead = false,
+                CreatedAt = DateTime.Now
+            };
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Từ chối chiến dịch thành công" });
         }
-
-        var campaign = await _context.Campaigns.FindAsync(campaignId);
-        if (campaign == null)
+        catch (Exception ex)
         {
-            return Json(new { success = false, message = "Không tìm thấy chiến dịch" });
+            _logger.LogError(ex, "Error rejecting campaign {CampaignId}", campaignId);
+            return Json(new { success = false, message = "Lỗi: " + ex.Message });
         }
-
-        var oldStatus = campaign.Status;
-        campaign.Status = "rejected";
-        campaign.UpdatedAt = DateTime.Now;
-
-        await _context.SaveChangesAsync();
-        await LogAuditAsync("REJECT_CAMPAIGN", "Campaigns", campaignId, oldStatus, "rejected");
-
-        var notification = new Notification
-        {
-            UserId = campaign.CreatorId,
-            Title = "Chiến dịch bị từ chối",
-            Message = $"Chiến dịch \"{campaign.Title}\" của bạn đã bị từ chối. Lý do: {note}",
-            Type = "campaign_update",
-            IsRead = false,
-            CreatedAt = DateTime.Now
-        };
-        _context.Notifications.Add(notification);
-        await _context.SaveChangesAsync();
-
-        return Json(new { success = true, message = "Từ chối chiến dịch thành công" });
     }
 
     /// <summary>

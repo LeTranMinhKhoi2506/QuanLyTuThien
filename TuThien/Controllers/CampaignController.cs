@@ -94,7 +94,10 @@ namespace TuThien.Controllers
                     }
                     
                     thumbnailUrl = "/images/campaigns/" + uniqueFileName;
+
                 }
+
+
 
                 // Map to Entity
                 var campaign = new Campaign
@@ -108,14 +111,50 @@ namespace TuThien.Controllers
                     CategoryId = model.CategoryId,
                     ExcessFundOption = model.ExcessFundOption,
                     CreatorId = userId.Value,
+
                     ThumbnailUrl = thumbnailUrl ?? "/images/default-campaign.jpg", // Fallback image
-                    Status = "pending_approval", // Changed to 'pending_approval' per user request
+                    Status = "pending_approval",
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
                 };
 
                 _context.Add(campaign);
                 await _context.SaveChangesAsync();
+
+                // Handle Multiple Verification Documents
+                if (model.VerificationDocuments != null && model.VerificationDocuments.Count > 0)
+                {
+                    string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "verification-docs");
+                    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+                    for (int i = 0; i < model.VerificationDocuments.Count; i++)
+                    {
+                        var file = model.VerificationDocuments[i];
+                        if (file.Length > 0)
+                        {
+                            string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+                            string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                            using (var fileStream = new FileStream(filePath, FileMode.Create))
+                            {
+                                await file.CopyToAsync(fileStream);
+                            }
+
+                            var description = (model.VerificationDocDescriptions != null && model.VerificationDocDescriptions.Count > i) 
+                                            ? model.VerificationDocDescriptions[i] 
+                                            : "Tài liệu xác nhận";
+
+                            var campaignDoc = new CampaignDocument
+                            {
+                                CampaignId = campaign.CampaignId,
+                                FileUrl = "/uploads/verification-docs/" + uniqueFileName,
+                                FileType = file.ContentType.Contains("pdf") ? "pdf" : "image",
+                                Description = description
+                            };
+                            _context.Add(campaignDoc);
+                        }
+                    }
+                    await _context.SaveChangesAsync();
+                }
                 
                 TempData["SuccessMessage"] = "Chiến dịch đã được tạo thành công và đang chờ duyệt!";
                 return RedirectToAction("Index", "TrangChu"); // Redirect to Home

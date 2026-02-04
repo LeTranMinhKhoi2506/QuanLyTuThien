@@ -51,10 +51,7 @@
                         <i class="bi bi-calendar-event me-2"></i>
                         <span>@Model.CreatedAt?.ToString("dd/MM/yyyy")</span>
                     </div>
-                    <div class="meta-item">
-                        <i class="bi bi-eye me-2"></i>
-                        <span>1,234 lượt xem</span>
-                    </div>
+                  
                 </div>
             </div>
 
@@ -207,6 +204,8 @@
                                     </div>
                                 </div>
                             }
+
+
 
                             @if (Model.CampaignDocuments?.Any() == true)
                             {
