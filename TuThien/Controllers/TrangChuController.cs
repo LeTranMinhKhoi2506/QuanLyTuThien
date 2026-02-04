@@ -12,12 +12,26 @@ namespace TuThien.Controllers
         {
             _context = context;
         }
+        
         public async Task<IActionResult> Index()
         {
             var categorise = await _context.Categories
                 .Include(c => c.Campaigns.Where(cmp => cmp.Status == "active"))
                 .OrderBy(c => c.Name)
                 .ToListAsync();
+
+            // Lấy top 3 tin tức mới nhất
+            var latestNews = await _context.CampaignUpdates
+                .Include(u => u.Campaign)
+                    .ThenInclude(c => c.Category)
+                .Include(u => u.Author)
+                .Where(u => u.Campaign.Status == "active")
+                .OrderByDescending(u => u.CreatedAt)
+                .Take(3)
+                .ToListAsync();
+
+            ViewBag.LatestNews = latestNews;
+            
             return View("TrangChu", categorise);
         }
         

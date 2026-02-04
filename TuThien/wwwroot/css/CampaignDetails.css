@@ -1,6 +1,9 @@
 /* ==================== CAMPAIGN DETAILS PAGE ==================== */
 .campaign-details-page {
     animation: fadeIn 0.5s ease-out;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
 }
 
 /* Breadcrumb */
@@ -10,9 +13,10 @@
 }
 
 .breadcrumb-item + .breadcrumb-item::before {
-    content: "›";
-    font-size: 1.2rem;
+    content: "/";
+    font-size: 1rem;
     color: #6c757d;
+    padding: 0 0.5rem;
 }
 
 .breadcrumb a {
@@ -747,6 +751,10 @@
 
 /* ==================== RESPONSIVE ==================== */
 @media (max-width: 992px) {
+    .campaign-details-page {
+        padding: 0 15px;
+    }
+    
     .campaign-main-title {
         font-size: 2rem;
     }
@@ -763,6 +771,10 @@
 }
 
 @media (max-width: 768px) {
+    .campaign-details-page {
+        padding: 0 12px;
+    }
+    
     .campaign-main-title {
         font-size: 1.75rem;
     }
@@ -792,6 +804,10 @@
 }
 
 @media (max-width: 576px) {
+    .campaign-details-page {
+        padding: 0 10px;
+    }
+    
     .campaign-main-title {
         font-size: 1.5rem;
     }
