@@ -1,0 +1,127 @@
+@* Partial View: Modal Tạo/Sửa Chiến dịch *@
+<div class="modal fade" id="campaignModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="campaignModalTitle">Thêm chiến dịch mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="campaignForm">
+                    <input type="hidden" id="campaignId" value="0" />
+                    
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Lưu ý:</strong> Tên chiến dịch phải duy nhất và không trùng với chiến dịch đã tồn tại.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-tag me-1"></i>Tên chiến dịch <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="campaignTitle" required minlength="10" maxlength="200" placeholder="Nhập tên chiến dịch (10-200 ký tự)" />
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <small id="titleFeedback" class="text-muted">Tên chiến dịch phải từ 10-200 ký tự</small>
+                                <small id="titleCounter" class="text-muted">0/200</small>
+                            </div>
+                            <div id="titleError" class="invalid-feedback d-block" style="display: none !important;"></div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-folder me-1"></i>Danh mục <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="campaignCategory" required>
+                                <option value="">-- Chọn danh mục --</option>
+                            </select>
+                            <small id="categoryFeedback" class="text-muted">Bắt buộc chọn danh mục để phân loại</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-card-text me-1"></i>Mô tả chi tiết <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" id="campaignDescription" rows="4" required minlength="50" placeholder="Mô tả chi tiết về chiến dịch, hoàn cảnh, mục đích sử dụng quỹ..."></textarea>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <small id="descFeedback" class="text-muted">Tối thiểu 50 ký tự. Mô tả rõ ràng giúp tăng độ tin cậy.</small>
+                            <small id="descCounter" class="text-muted">0 ký tự</small>
+                        </div>
+                        <div id="descError" class="invalid-feedback d-block" style="display: none !important;"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-cash me-1"></i>Mục tiêu (VNĐ) <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="campaignTarget" required placeholder="Nhập số tiền mục tiêu" />
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <small id="targetFeedback" class="text-muted">Tối thiểu 100.000 VNĐ</small>
+                                <small id="targetFormatted" class="text-primary fw-semibold"></small>
+                            </div>
+                            <div id="targetError" class="invalid-feedback d-block" style="display: none !important;"></div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar-event me-1"></i>Ngày bắt đầu
+                            </label>
+                            <input type="date" class="form-control" id="campaignStartDate" />
+                            <small id="startDateFeedback" class="text-muted">Mặc định là hôm nay</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar-check me-1"></i>Ngày kết thúc
+                            </label>
+                            <input type="date" class="form-control" id="campaignEndDate" />
+                            <small id="endDateFeedback" class="text-muted">Thời hạn gây quỹ (không bắt buộc)</small>
+                            <div id="dateError" class="invalid-feedback d-block" style="display: none !important;"></div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-image me-1"></i>URL Ảnh đại diện
+                            </label>
+                            <input type="url" class="form-control" id="campaignThumbnail" placeholder="https://example.com/image.jpg" />
+                            <small class="text-muted">Link ảnh minh họa cho chiến dịch (JPG, PNG)</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-arrow-repeat me-1"></i>Xử lý tiền dư
+                            </label>
+                            <select class="form-select" id="campaignExcessOption">
+                                <option value="next_case">Chuyển cho hoàn cảnh tiếp theo</option>
+                                <option value="reserve_fund">Chuyển vào quỹ dự phòng</option>
+                                <option value="general_fund">Sung vào quỹ chung</option>
+                                <option value="extend">Mở rộng phạm vi giúp đỡ</option>
+                            </select>
+                            <small class="text-muted">Cách xử lý khi vượt mục tiêu</small>
+                        </div>
+                    </div>
+                    <div class="row" id="statusRow" style="display: none;">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-toggle2-on me-1"></i>Trạng thái
+                            </label>
+                            <select class="form-select" id="campaignStatus">
+                                <option value="active">Hoạt động</option>
+                                <option value="pending_approval">Chờ duyệt</option>
+                                <option value="draft">Nháp</option>
+                                <option value="completed">Đã hoàn thành</option>
+                                <option value="paused">Tạm dừng</option>
+                                <option value="rejected">Từ chối</option>
+                                <option value="locked">Bị khóa</option>
+                            </select>
+                            <small class="text-muted">Thay đổi trạng thái chiến dịch</small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="saveCampaign()">
+                    <i class="bi bi-check-lg me-1"></i>Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -49,6 +49,15 @@ body {
   color: var(--color-primary-start) !important;
 }
 
+/* Bootstrap Dropdown Z-Index Fix */
+.dropdown-menu {
+  z-index: 1040 !important;
+}
+
+.dropdown-menu-end {
+  z-index: 1040 !important;
+}
+
 .bg-primary-gradient {
   background: var(--color-primary-gradient) !important;
 }

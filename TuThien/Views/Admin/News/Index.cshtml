@@ -1,0 +1,232 @@
+@model List<TuThien.Models.CampaignUpdate>
+@{
+    ViewData["Title"] = "Quản lý tin tức";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1"><i class="bi bi-newspaper me-2"></i>Quản lý tin tức</h4>
+        <p class="text-muted mb-0">Quản lý các bài cập nhật và tin tức của chiến dịch</p>
+    </div>
+    <a href="@Url.Action("Create", "AdminNews")" class="btn btn-success">
+        <i class="bi bi-plus-lg me-1"></i>Tạo tin tức mới
+    </a>
+</div>
+
+<!-- Statistics -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-newspaper"></i>
+                </div>
+                <div>
+                    <div class="stat-value">@Model.Count</div>
+                    <div class="stat-label">Tổng tin tức</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon bg-info bg-opacity-10 text-info">
+                    <i class="bi bi-chat-left-text"></i>
+                </div>
+                <div>
+                    <div class="stat-value">@Model.Count(n => n.Type == "general")</div>
+                    <div class="stat-label">Tin cập nhật chung</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-file-earmark-bar-graph"></i>
+                </div>
+                <div>
+                    <div class="stat-value">@Model.Count(n => n.Type == "financial_report")</div>
+                    <div class="stat-label">Báo cáo tài chính</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- News Table -->
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-list-ul me-2"></i>Danh sách tin tức
+    </div>
+    <div class="card-body">
+        <table id="newsTable" class="table table-hover align-middle w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Tiêu đề</th>
+                    <th>Chiến dịch</th>
+                    <th>Loại</th>
+                    <th>Tác giả</th>
+                    <th>Ngày tạo</th>
+                    <th class="text-center">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var news in Model)
+                {
+                    <tr>
+                        <td><code>@news.UpdateId</code></td>
+                        <td>
+                            <div class="text-truncate" style="max-width: 250px;" title="@news.Title">
+                                @news.Title
+                            </div>
+                        </td>
+                        <td>
+                            <a href="@Url.Action("CampaignDetail", "Admin", new { id = news.CampaignId })" 
+                               class="text-decoration-none text-truncate d-inline-block" style="max-width: 200px;">
+                                @news.Campaign?.Title
+                            </a>
+                        </td>
+                        <td>
+                            @{
+                                var typeBadge = news.Type switch
+                                {
+                                    "general" => "bg-info",
+                                    "financial_report" => "bg-success",
+                                    _ => "bg-secondary"
+                                };
+                                var typeText = news.Type switch
+                                {
+                                    "general" => "Cập nhật chung",
+                                    "financial_report" => "Báo cáo tài chính",
+                                    _ => news.Type
+                                };
+                            }
+                            <span class="badge @typeBadge">@typeText</span>
+                        </td>
+                        <td>@news.Author?.Username</td>
+                        <td data-order="@news.CreatedAt?.ToString("yyyy-MM-dd HH:mm")">
+                            <small>@news.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="@Url.Action("Details", "News", new { id = news.UpdateId })" 
+                                   class="btn btn-outline-info" target="_blank" title="Xem">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="@Url.Action("Edit", "AdminNews", new { id = news.UpdateId })" 
+                                   class="btn btn-outline-primary" title="Sửa">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        onclick="deleteNews(@news.UpdateId, '@news.Title?.Replace("'", "\\'")' )" title="Xóa">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function() {
+        $('#newsTable').DataTable({
+            order: [[0, 'desc']],
+            columnDefs: [
+                { targets: [6], orderable: false }
+            ],
+            dom: "<'row mb-3'<'col-sm-12 col-md-4'l><'col-sm-12 col-md-4 text-center'B><'col-sm-12 col-md-4'f>>" +
+                 "<'row'<'col-sm-12'tr>>" +
+                 "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+            buttons: [
+                {
+                    extend: 'excel',
+                    text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                    className: 'btn btn-success btn-sm',
+                    title: 'Danh sách tin tức'
+                },
+                {
+                    extend: 'pdf',
+                    text: '<i class="bi bi-file-earmark-pdf me-1"></i> PDF',
+                    className: 'btn btn-danger btn-sm',
+                    title: 'Danh sách tin tức'
+                },
+                {
+                    extend: 'print',
+                    text: '<i class="bi bi-printer me-1"></i> In',
+                    className: 'btn btn-secondary btn-sm',
+                    title: 'Danh sách tin tức'
+                }
+            ]
+        });
+    });
+
+    async function deleteNews(id, title) {
+        const result = await Swal.fire({
+            icon: 'warning',
+            title: 'Xóa tin tức',
+            html: `Bạn có chắc chắn muốn xóa tin tức "<strong>${title}</strong>"?<br><small class="text-muted">Hành động này không thể hoàn tác!</small>`,
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-trash me-1"></i>Xóa',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true
+        });
+
+        if (!result.isConfirmed) return;
+
+        Swal.fire({
+            title: 'Đang xóa...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const formData = new FormData();
+        formData.append('id', id);
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+        try {
+            const response = await fetch('@Url.Action("Delete", "AdminNews")', {
+                method: 'POST',
+                body: formData
+            });
+
+            const res = await response.json();
+            if (res.success) {
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Đã xóa!',
+                    text: res.message,
+                    confirmButtonColor: '#198754'
+                });
+                location.reload();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: res.message,
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi kết nối',
+                text: 'Đã xảy ra lỗi, vui lòng thử lại',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    }
+</script>
+}
