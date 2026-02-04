@@ -99,7 +99,7 @@
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <label asp-for="StartDate" class="form-label fw-bold">Ngày bắt đầu <span class="text-danger">*</span></label>
-                                <input asp-for="StartDate" class="form-control form-control-lg" />
+                                <input asp-for="StartDate" class="form-control form-control-lg" min="@DateTime.Now.ToString("yyyy-MM-dd")" />
                                 <span asp-validation-for="StartDate" class="text-danger"></span>
                             </div>
                             <div class="col-md-6">
@@ -401,21 +401,115 @@
                         }
 
                         // Date Validation
-                        const deadlines = Array.from(milestonesContainer.querySelectorAll('.milestone-deadline')).map(i => new Date(i.value));
+                        const campaignStart = new Date(startDateVal);
                         const campaignEnd = new Date(document.getElementById('EndDate').value);
-
-                        for(let i = 0; i < deadlines.length; i++) {
-                            if(deadlines[i] > campaignEnd) {
+                        
+                        // 1. Validate Milestones Range
+                        const deadlineInputs = Array.from(milestonesContainer.querySelectorAll('.milestone-deadline'));
+                        
+                        for(let i = 0; i < deadlineInputs.length; i++) {
+                            const deadlineDate = new Date(deadlineInputs[i].value);
+                            
+                            if(deadlineDate <= campaignStart) {
                                 e.preventDefault();
-                                alert(`Giai đoạn ${i+1} kết thúc sau ngày kết thúc chiến dịch!`);
+                                alert(`Giai đoạn ${i+1} phải kết thúc sau ngày bắt đầu chiến dịch!`);
                                 return;
                             }
-                            if(i > 0 && deadlines[i] < deadlines[i - 1]) {
+
+                            if(deadlineDate > campaignEnd) {
                                 e.preventDefault();
-                                alert(`Giai đoạn ${i+1} phải kết thúc sau giai đoạn ${i}!`);
+                                alert(`Giai đoạn ${i+1} không được kết thúc sau ngày kết thúc chiến dịch!`);
                                 return;
+                            }
+                            
+                            if(i > 0) {
+                                const prevDeadline = new Date(deadlineInputs[i-1].value);
+                                if(deadlineDate <= prevDeadline) {
+                                    e.preventDefault();
+                                    alert(`Giai đoạn ${i+1} phải kết thúc sau giai đoạn ${i}!`);
+                                    return;
+                                }
                             }
                         }
+                    }
+                });
+            }
+
+            // --- Real-time Date Constraints Logic ---
+            const startDateInput = document.getElementById('StartDate');
+            const endDateInput = document.getElementById('EndDate');
+            
+            // Set initial min date for StartDate to Today
+            const today = new Date().toISOString().split('T')[0];
+            if(startDateInput) {
+                startDateInput.setAttribute('min', today);
+                
+                startDateInput.addEventListener('change', function() {
+                    const startVal = this.value;
+                    if(endDateInput) {
+                        // EndDate must be > StartDate
+                        const d = new Date(startVal);
+                        d.setDate(d.getDate() + 1); // Next day
+                        endDateInput.min = d.toISOString().split('T')[0];
+                        
+                        // If EndDate is currently invalid, clear it or let user fix
+                        if(endDateInput.value && endDateInput.value <= startVal) {
+                             endDateInput.value = ''; 
+                        }
+                    }
+                    updateMilestoneConstraints();
+                });
+            }
+
+            if(endDateInput) {
+                endDateInput.addEventListener('change', function() {
+                    updateMilestoneConstraints();
+                });
+            }
+
+            // Listen for milestone additions
+            if(btnAddMilestone) {
+                btnAddMilestone.addEventListener('click', function() {
+                    // Slight delay to allow DOM update
+                    setTimeout(updateMilestoneConstraints, 50);
+                });
+            }
+
+            // Listen for changes in milestone deadlines
+            if(milestonesContainer) {
+                milestonesContainer.addEventListener('change', function(e) {
+                    if(e.target.classList.contains('milestone-deadline')) {
+                        updateMilestoneConstraints();
+                    }
+                });
+            }
+
+            function updateMilestoneConstraints() {
+                if(!startDateInput || !endDateInput) return;
+                
+                const startVal = startDateInput.value;
+                const endVal = endDateInput.value;
+                const deadlines = milestonesContainer.querySelectorAll('.milestone-deadline');
+
+                deadlines.forEach((input, index) => {
+                    // Min Constraint
+                    let minDate = startVal;
+                    if (index > 0) {
+                        const prevVal = deadlines[index - 1].value;
+                        if (prevVal) {
+                            minDate = prevVal;
+                        }
+                    }
+                    
+                    if(minDate) {
+                        const d = new Date(minDate);
+                        d.setDate(d.getDate() + 1);
+                        input.min = d.toISOString().split('T')[0];
+                    }
+
+                    // Max Constraint
+                    if (endVal) {
+                        input.max = endVal; // Can be equal to EndDate
                     }
                 });
             }
