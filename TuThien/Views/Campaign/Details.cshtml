@@ -1,3 +1,4 @@
+@using Microsoft.AspNetCore.Http
 @model TuThien.Models.Campaign
 
 @{
@@ -10,7 +11,11 @@
     int percent = target > 0 ? (int)System.Math.Min(100, System.Math.Round((current / target) * 100)) : 0;
     
     var daysLeft = Model.EndDate.HasValue ? (Model.EndDate.Value - DateTime.Now).Days : 0;
-    var donorCount = Model.Donations?.Count ?? 0;
+    // Đếm số người quyên góp duy nhất (unique donors)
+    var successfulDonationsList = Model.Donations?.Where(d => d.PaymentStatus == "success" || d.PaymentStatus == "completed").ToList() ?? new List<TuThien.Models.Donation>();
+    var donorCount = successfulDonationsList
+        .GroupBy(d => new { d.UserId, IsAnonymous = d.IsAnonymous == true })
+        .Count();
 }
 
 <link rel="stylesheet" href="~/css/CampaignDetails.css" asp-append-version="true" />
@@ -106,14 +111,18 @@
                                             
                                             // Tính toán trạng thái của từng mốc theo logic tuần tự
                                             bool allPreviousCompleted = true;
+                                            decimal cumulativeAmount = 0; // Tổng tiền tích lũy từ tất cả các mốc trước
                                             
                                             for (int i = 0; i < milestones.Count; i++)
                                             {
                                                 var milestone = milestones[i];
                                                 var milestoneNumber = i + 1;
                                                 
-                                                // Kiểm tra điều kiện đạt mốc này
-                                                bool isReached = current >= milestone.AmountNeeded && allPreviousCompleted;
+                                                // Tính tổng tiền cần thiết cho mốc này (bao gồm cả các mốc trước)
+                                                cumulativeAmount += milestone.AmountNeeded;
+                                                
+                                                // Kiểm tra điều kiện đạt mốc này - phải đủ tổng tiền tích lũy
+                                                bool isReached = current >= cumulativeAmount && allPreviousCompleted;
                                                 
                                                 // Xác định trạng thái: completed, active, locked
                                                 string status = "locked";
@@ -155,6 +164,10 @@
                                                         <p class="text-muted mb-2">
                                                             <strong>Mục tiêu: @String.Format("{0:N0}", milestone.AmountNeeded) ₫</strong>
                                                         </p>
+                                                        <p class="text-muted mb-2">
+                                                            <i class="bi bi-piggy-bank"></i> 
+                                                            Tổng cần: <strong>@String.Format("{0:N0}", cumulativeAmount) ₫</strong>
+                                                        </p>
                                                         
                                                         @if (milestone.Deadline.HasValue)
                                                         {
@@ -172,9 +185,9 @@
                                                         }
                                                         else if (status == "active")
                                                         {
-                                                            var remaining = milestone.AmountNeeded - current;
-                                                            var progressPercent = current > 0 && milestone.AmountNeeded > 0 
-                                                                ? (int)((current / milestone.AmountNeeded) * 100) 
+                                                            var remaining = cumulativeAmount - current;
+                                                            var progressPercent = current > 0 && cumulativeAmount > 0 
+                                                                ? (int)((current / cumulativeAmount) * 100) 
                                                                 : 0;
                                                             
                                                             <div class="milestone-progress mt-2">
@@ -183,7 +196,7 @@
                                                                          style="width: @progressPercent%"></div>
                                                                 </div>
                                                                 <span class="badge bg-warning text-dark">
-                                                                    <i class="bi bi-hourglass-split"></i> Đang tiến hành - Còn @String.Format("{0:N0}", remaining) ₫
+                                                                    <i class="bi bi-hourglass-split"></i> Đang quyên góp - Còn @String.Format("{0:N0}", remaining) ₫
                                                                 </span>
                                                             </div>
                                                         }
@@ -295,25 +308,46 @@
                     <!-- Donors Tab -->
                     <div class="tab-pane fade" id="donors" role="tabpanel">
                         <div class="donors-content">
-                            @if (Model.Donations?.Any() == true)
+                            @{
+                                // Nhóm donations theo người dùng và cộng tổng số tiền
+                                var completedDonations = Model.Donations?.Where(d => d.PaymentStatus == "success" || d.PaymentStatus == "completed").ToList() ?? new List<TuThien.Models.Donation>();
+                                
+                                var groupedDonors = completedDonations
+                                    .GroupBy(d => new { 
+                                        UserId = d.UserId,
+                                        IsAnonymous = d.IsAnonymous == true,
+                                        Username = d.IsAnonymous == true ? "Ẩn danh" : (d.User?.Username ?? "Người quyên góp")
+                                    })
+                                    .Select(g => new {
+                                        Username = g.Key.Username,
+                                        IsAnonymous = g.Key.IsAnonymous,
+                                        TotalAmount = g.Sum(d => d.Amount),
+                                        DonationCount = g.Count(),
+                                        LastDonationDate = g.Max(d => d.DonatedAt)
+                                    })
+                                    .OrderByDescending(d => d.TotalAmount)
+                                    .ToList();
+                            }
+                            
+                            @if (groupedDonors.Any())
                             {
                                 <div class="donors-stats mb-4">
                                     <div class="row text-center">
                                         <div class="col-md-4">
                                             <div class="stat-box">
-                                                <h3>@donorCount</h3>
+                                                <h3>@groupedDonors.Count</h3>
                                                 <p class="text-muted">Nhà quyên góp</p>
                                             </div>
                                         </div>
                                         <div class="col-md-4">
                                             <div class="stat-box">
-                                                <h3>@String.Format("{0:N0}", current) ₫</h3>
+                                                <h3>@String.Format("{0:N0}", groupedDonors.Sum(d => d.TotalAmount)) ₫</h3>
                                                 <p class="text-muted">Đã quyên góp</p>
                                             </div>
                                         </div>
                                         <div class="col-md-4">
                                             <div class="stat-box">
-                                                <h3>@String.Format("{0:N0}", Model.Donations.Average(d => d.Amount)) ₫</h3>
+                                                <h3>@String.Format("{0:N0}", groupedDonors.Average(d => d.TotalAmount)) ₫</h3>
                                                 <p class="text-muted">Trung bình</p>
                                             </div>
                                         </div>
@@ -321,18 +355,26 @@
                                 </div>
 
                                 <div class="donors-list">
-                                    @foreach (var donation in Model.Donations.OrderByDescending(d => d.DonatedAt))
+                                    @foreach (var donor in groupedDonors)
                                     {
                                         <div class="donor-item">
                                             <div class="donor-avatar">
                                                 <i class="bi bi-person-circle"></i>
                                             </div>
                                             <div class="donor-info">
-                                                <h6>@(donation.IsAnonymous == true ? "Ẩn danh" : donation.User?.Username ?? "Người quyên góp")</h6>
-                                                <p class="text-muted mb-0">@donation.DonatedAt?.ToString("dd/MM/yyyy HH:mm")</p>
+                                                <h6>
+                                                    @donor.Username
+                                                    @if (donor.DonationCount > 1)
+                                                    {
+                                                        <span class="badge bg-info text-white ms-2">@donor.DonationCount lần</span>
+                                                    }
+                                                </h6>
+                                                <p class="text-muted mb-0">
+                                                    Lần gần nhất: @donor.LastDonationDate?.ToString("dd/MM/yyyy HH:mm")
+                                                </p>
                                             </div>
                                             <div class="donor-amount">
-                                                <strong>@String.Format("{0:N0}", donation.Amount) ₫</strong>
+                                                <strong>@String.Format("{0:N0}", donor.TotalAmount) ₫</strong>
                                             </div>
                                         </div>
                                     }
@@ -352,21 +394,55 @@
                     <!-- Comments Tab -->
                     <div class="tab-pane fade" id="comments" role="tabpanel">
                         <div class="comments-content">
-                            <div class="comment-form mb-4">
-                                <h5>Để lại bình luận</h5>
-                                <form>
-                                    <div class="mb-3">
-                                        <textarea class="form-control" rows="3" placeholder="Chia sẻ suy nghĩ của bạn..."></textarea>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-send me-2"></i>Gửi bình luận
-                                    </button>
-                                </form>
-                            </div>
+                            @if (Context.Session.GetInt32("UserId") != null)
+                            {
+                                <div class="comment-form mb-4">
+                                    <h5>Để lại bình luận</h5>
+                                    
+                                    @if (TempData["SuccessMessage"] != null)
+                                    {
+                                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                            @TempData["SuccessMessage"]
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                        </div>
+                                    }
+                                    
+                                    @if (TempData["ErrorMessage"] != null)
+                                    {
+                                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                            @TempData["ErrorMessage"]
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                        </div>
+                                    }
+                                    
+                                    <form asp-controller="Campaign" asp-action="AddComment" method="post">
+                                        <input type="hidden" name="campaignId" value="@Model.CampaignId" />
+                                        @Html.AntiForgeryToken()
+                                        <div class="mb-3">
+                                            <textarea class="form-control" name="content" rows="3" 
+                                                      placeholder="Chia sẻ suy nghĩ của bạn..." 
+                                                      required
+                                                      maxlength="1000"></textarea>
+                                            <small class="text-muted">Tối đa 1000 ký tự</small>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-send me-2"></i>Gửi bình luận
+                                        </button>
+                                    </form>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-info mb-4">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <a href="/Account/Login?returnUrl=/Campaign/Details/@Model.CampaignId" class="alert-link">Đăng nhập</a> để bình luận
+                                </div>
+                            }
 
                             <div class="comments-list">
                                 @if (Model.Comments?.Any() == true)
                                 {
+                                    <h5 class="mb-3">Tất cả bình luận (@Model.Comments.Count)</h5>
                                     @foreach (var comment in Model.Comments.OrderByDescending(c => c.CreatedAt))
                                     {
                                         <div class="comment-item">
@@ -388,6 +464,7 @@
                                     <div class="empty-state text-center py-5">
                                         <i class="bi bi-chat-dots" style="font-size: 3rem; color: #ccc;"></i>
                                         <p class="text-muted mt-3">Chưa có bình luận nào</p>
+                                        <p class="text-muted">Hãy là người đầu tiên bình luận!</p>
                                     </div>
                                 }
                             </div>

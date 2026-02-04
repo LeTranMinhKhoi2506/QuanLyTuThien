@@ -279,5 +279,48 @@ namespace TuThien.Controllers
             TempData["SuccessMessage"] = "Đã xóa chiến dịch thành công.";
             return RedirectToAction(nameof(MyCampaigns));
         }
+
+        // POST: Campaign/AddComment
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddComment(int campaignId, string content)
+        {
+            // Check if user is logged in
+            int? userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                TempData["ErrorMessage"] = "Bạn cần đăng nhập để bình luận.";
+                return RedirectToAction("Login", "Account", new { returnUrl = $"/Campaign/Details/{campaignId}" });
+            }
+
+            // Validate content
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                TempData["ErrorMessage"] = "Nội dung bình luận không được để trống.";
+                return RedirectToAction("Details", new { id = campaignId });
+            }
+
+            // Check if campaign exists
+            var campaign = await _context.Campaigns.FindAsync(campaignId);
+            if (campaign == null)
+            {
+                return NotFound();
+            }
+
+            // Create new comment
+            var comment = new Comment
+            {
+                CampaignId = campaignId,
+                UserId = userId.Value,
+                Content = content.Trim(),
+                CreatedAt = DateTime.Now
+            };
+
+            _context.Comments.Add(comment);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Bình luận của bạn đã được đăng thành công!";
+            return RedirectToAction("Details", new { id = campaignId });
+        }
     }
 }
