@@ -266,14 +266,6 @@
                         </ul>
                     </div>
                     
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-chat-left-text me-1"></i>Ghi chú Admin
-                        </label>
-                        <textarea id="adminNote" class="form-control" rows="3" placeholder="Nhập ghi chú hoặc lý do từ chối nếu không phê duyệt..."></textarea>
-                        <small class="text-muted">Ghi chú này sẽ được gửi đến người tạo chiến dịch</small>
-                    </div>
-                    
                     <div class="row">
                         <div class="col-md-6 mb-3 mb-md-0">
                             <button type="button" class="btn btn-success btn-lg w-100" onclick="approveCampaign()">
@@ -285,7 +277,7 @@
                             <button type="button" class="btn btn-danger btn-lg w-100" onclick="rejectCampaign()">
                                 <i class="bi bi-x-circle me-2"></i>Từ chối chiến dịch
                             </button>
-                            <small class="text-muted d-block mt-1">Yêu cầu nhập lý do từ chối</small>
+                            <small class="text-muted d-block mt-1">Chiến dịch sẽ bị hủy bỏ</small>
                         </div>
                     </div>
                 </div>
@@ -455,20 +447,12 @@
     }
         
     async function rejectCampaign() {
-        const note = document.getElementById('adminNote')?.value;
-            
-        if (!note?.trim()) {
-            showToast('Cảnh báo', 'Vui lòng nhập lý do từ chối!', 'warning');
-            document.getElementById('adminNote').focus();
-            return;
-        }
-            
         const confirmed = await confirmReject('chiến dịch này');
         if (!confirmed) return;
             
         const formData = new FormData();
         formData.append('campaignId', @Model.CampaignId);
-        formData.append('note', note);
+        formData.append('note', '');
         formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
             
         try {

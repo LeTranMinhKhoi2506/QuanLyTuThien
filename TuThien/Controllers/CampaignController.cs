@@ -117,7 +117,11 @@ namespace TuThien.Controllers
             ViewData["CategoryId"] = new SelectList(_context.Categories, "CategoryId", "Name");
 
             // Create a new instance of the view model instead of passing null
-            var model = new CampaignCreateViewModel();
+            var model = new CampaignCreateViewModel
+            {
+                StartDate = DateTime.Today,
+                EndDate = DateTime.Today.AddMonths(1)
+            };
             return View(model);
         }
 
@@ -131,6 +135,29 @@ namespace TuThien.Controllers
             if (userId == null)
             {
                 return RedirectToAction("Login", "Account");
+            }
+
+            // 1. Logic Fix: Nếu không chọn "Chia giai đoạn", bỏ qua validate của Milestones
+            if (!model.IsPhased)
+            {
+                var milestoneKeys = ModelState.Keys.Where(k => k.StartsWith("Milestones")).ToList();
+                foreach (var key in milestoneKeys)
+                {
+                    ModelState.Remove(key);
+                }
+                model.Milestones.Clear();
+            }
+
+            // 2. Logic Validation: Ngày kết thúc phải sau ngày bắt đầu
+            if (model.EndDate <= model.StartDate)
+            {
+                ModelState.AddModelError("EndDate", "Ngày kết thúc phải lớn hơn ngày bắt đầu.");
+            }
+            if (model.StartDate < DateTime.Today) 
+            {
+                 // Optional warning, but maybe they want to backdate? Let's strictly block past dates for new campaigns?
+                 // Let's just warn about EndDate for now.
+                 ModelState.AddModelError("StartDate", "Ngày bắt đầu không được nhỏ hơn ngày hiện tại.");
             }
 
             if (ModelState.IsValid)
@@ -217,7 +244,10 @@ namespace TuThien.Controllers
                 TempData["SuccessMessage"] = "Chiến dịch đã được tạo thành công và đang chờ duyệt!";
                 return RedirectToAction("Index", "TrangChu"); // Redirect to Home
             }
-            
+            // Debug: Log errors if model is invalid
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            TempData["ErrorMessage"] = "Có lỗi xảy ra: " + string.Join("; ", errors);
+
             ViewData["CategoryId"] = new SelectList(_context.Categories, "CategoryId", "Name", model.CategoryId);
             return View(model);
         }
