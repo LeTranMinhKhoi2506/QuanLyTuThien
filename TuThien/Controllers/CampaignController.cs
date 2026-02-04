@@ -22,6 +22,32 @@ namespace TuThien.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
+        // GET: Campaign/Index
+        public async Task<IActionResult> Index()
+        {
+            var categories = await _context.Categories.ToListAsync();
+            return View(categories);
+        }
+
+        // GET: Campaign/GetCampaigns
+        public async Task<IActionResult> GetCampaigns(int? categoryId)
+        {
+            var query = _context.Campaigns
+                .Where(c => c.Status == "active" || c.Status == "approved") // Show active/approved campaigns
+                .Include(c => c.Category)
+                .AsQueryable();
+
+            if (categoryId.HasValue)
+            {
+                query = query.Where(c => c.CategoryId == categoryId.Value);
+            }
+
+            // Sort by Amount Donated (High to Low)
+            var campaigns = await query.OrderByDescending(c => c.CurrentAmount).ToListAsync();
+
+            return PartialView("_CampaignListPartial", campaigns);
+        }
+
         // GET: Campaign/Details/5
         [HttpGet]
         public async Task<IActionResult> Details(int id)

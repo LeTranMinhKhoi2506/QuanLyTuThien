@@ -66,11 +66,11 @@
                         </ul>
                     </li>
                     
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Các danh mục cụ thể
+                    <li class="nav-item dropdown hover-dropdown">
+                        <a class="nav-link dropdown-toggle" asp-controller="Campaign" asp-action="Index" id="campaignDropdown" aria-expanded="false">
+                            Chiến dịch
                         </a>
-                        <ul class="dropdown-menu">
+                        <ul class="dropdown-menu" aria-labelledby="campaignDropdown">
                             @await Component.InvokeAsync("Sidebar")
                         </ul>
                     </li>
@@ -140,3 +140,12 @@
         </nav>
     </div>
 </header>
+<style>
+    /* Make dropdown open on hover for desktop */
+    @@media (min-width: 768px) {
+        .hover-dropdown:hover .dropdown-menu {
+            display: block;
+            margin-top: 0;
+        }
+    }
+</style>

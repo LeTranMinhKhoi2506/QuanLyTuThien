@@ -3,7 +3,7 @@
 @if(Model != null && Model.Any())
 {
     <li>
-        <a href="#" class="dropdown-item category-filter" data-category-id="">
+        <a asp-controller="Campaign" asp-action="Index" class="dropdown-item">
             <i class="bi bi-grid-3x3-gap me-2"></i>Tất cả
         </a>
     </li>
@@ -11,7 +11,7 @@
     @foreach (var cat in Model)
     {
         <li>
-            <a href="#" class="dropdown-item category-filter" data-category-id="@cat.CategoryId">
+            <a asp-controller="Campaign" asp-action="Index" asp-route-categoryId="@cat.CategoryId" class="dropdown-item">
                 <i class="bi bi-tag me-2"></i>@cat.Name
             </a>
         </li>
