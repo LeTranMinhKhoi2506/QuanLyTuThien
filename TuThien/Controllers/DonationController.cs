@@ -51,6 +51,62 @@ public class DonationController : Controller
         return HttpContext.Session.GetInt32("UserId");
     }
 
+    /// <summary>
+    /// Trang quyên góp của tôi (Tổng hợp + Lịch sử)
+    /// </summary>
+    [HttpGet]
+    [Route("my-donations")]
+    public async Task<IActionResult> MyDonations(int page = 1)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue)
+        {
+            return RedirectToAction("Login", "Account", new { returnUrl = "/my-donations" });
+        }
+
+        // 1. Get all donations for grouping (Completed only for statistics generally, but maybe all for history?)
+        // Let's get all non-failed/pending donations for "Contributed Campaigns" statistics? 
+        // Usually we only count successful donations.
+        var allDonations = await _context.Donations
+            .Include(d => d.Campaign)
+                .ThenInclude(c => c.Category)
+            .Where(d => d.UserId == userId.Value)
+            .ToListAsync();
+
+        var successfulDonations = allDonations.Where(d => d.PaymentStatus == "success" || d.PaymentStatus == "completed").ToList();
+
+        // Group for "Chiến dịch đã đóng góp" tab
+        var contributedCampaigns = successfulDonations
+            .GroupBy(d => d.CampaignId)
+            .Select(g => new ContributedCampaignViewModel
+            {
+                Campaign = g.First().Campaign,
+                TotalDonated = g.Sum(d => d.Amount)
+            })
+            .OrderByDescending(x => x.TotalDonated)
+            .ToList();
+
+        // 2. Get pagination for "Lịch sử giao dịch" tab (All statuses)
+        int pageSize = 10;
+        var donationHistory = allDonations
+            .OrderByDescending(d => d.DonatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+        
+        var totalItems = allDonations.Count;
+
+        var viewModel = new MyDonationsViewModel
+        {
+            ContributedCampaigns = contributedCampaigns,
+            DonationHistory = donationHistory,
+            CurrentPage = page,
+            TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
+        };
+
+        return View(viewModel);
+    }
+
 
     /// <summary>
     /// Trang chính quyên góp - Hiển thị danh sách chiến dịch để người dùng chọn
@@ -77,6 +133,7 @@ public class DonationController : Controller
         var activeCampaigns = await _context.Campaigns
             .Include(c => c.Category)
             .Include(c => c.Creator)
+            .Include(c => c.CampaignMilestones.OrderBy(m => m.MilestoneId))
             .Where(c => c.Status == "active")
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
@@ -172,6 +229,7 @@ public class DonationController : Controller
     {
         var campaign = await _context.Campaigns
             .Include(c => c.Creator)
+            .Include(c => c.CampaignMilestones.OrderBy(m => m.MilestoneId))
             .FirstOrDefaultAsync(c => c.CampaignId == campaignId);
 
         if (campaign == null)

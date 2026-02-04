@@ -1,4 +1,4 @@
-@model IEnumerable<TuThien.Models.CampaignUpdate>
+﻿@model IEnumerable<TuThien.Models.CampaignUpdate>
 
 @{
     ViewData["Title"] = "Tin t?c m?i nh?t";
@@ -16,7 +16,7 @@
                     <i class="bi bi-clock-history me-3"></i>Tin t?c m?i nh?t
                 </h1>
                 <p class="page-subtitle">
-                    Nh?ng c?p nh?t m?i nh?t t? c�c chi?n d?ch t? thi?n
+                    Nh?ng c?p nh?t m?i nh?t t? các chi?n d?ch t? thi?n
                 </p>
             </div>
             <div class="col-md-4 text-md-end">
@@ -36,7 +36,7 @@
             <i class="bi bi-newspaper me-2"></i>Tin t?c chung
         </a>
         <a href="@Url.Action("Index", new { type = "financial_report" })" class="filter-tab">
-            <i class="bi bi-bar-chart-line me-2"></i>B�o c�o t�i ch�nh
+            <i class="bi bi-bar-chart-line me-2"></i>Báo cáo tài chính
         </a>
         <a href="@Url.Action("Latest")" class="filter-tab active">
             <i class="bi bi-clock-history me-2"></i>M?i nh?t
@@ -75,13 +75,13 @@
                     if (span.TotalMinutes < 1)
                         timeAgo = "V?a xong";
                     else if (span.TotalMinutes < 60)
-                        timeAgo = $"{(int)span.TotalMinutes} ph�t tr??c";
+                        timeAgo = $"{(int)span.TotalMinutes} phút trước";
                     else if (span.TotalHours < 24)
-                        timeAgo = $"{(int)span.TotalHours} gi? tr??c";
+                        timeAgo = $"{(int)span.TotalHours} giờ trước";
                     else if (span.TotalDays < 7)
-                        timeAgo = $"{(int)span.TotalDays} ng�y tr??c";
+                        timeAgo = $"{(int)span.TotalDays} ngày trước";
                     else if (span.TotalDays < 30)
-                        timeAgo = $"{(int)(span.TotalDays / 7)} tu?n tr??c";
+                        timeAgo = $"{(int)(span.TotalDays / 7)} tuần trước";
                     else
                         timeAgo = update.CreatedAt.Value.ToString("dd/MM/yyyy");
                 }
@@ -108,7 +108,7 @@
                                             @if (update.Type == "financial_report")
                                             {
                                                 <span class="badge badge-financial">
-                                                    <i class="bi bi-file-earmark-bar-graph me-1"></i>B�o c�o TC
+                                                    <i class="bi bi-file-earmark-bar-graph me-1"></i>Báo cáo TC
                                                 </span>
                                             }
                                             else
@@ -128,7 +128,7 @@
                                             <a href="@Url.Action("Details", "TrangChu", new { id = update.Campaign.CampaignId })" 
                                                class="campaign-tag" onclick="event.stopPropagation()">
                                                 <i class="bi bi-tag-fill me-1"></i>
-                                                @(update.Campaign.Category?.Name ?? "Chi?n d?ch")
+                                                @(update.Campaign.Category?.Name ?? "Chiến dịch")
                                             </a>
                                         }
                                         
@@ -154,7 +154,7 @@
                                             <a href="@Url.Action("Details", new { id = update.UpdateId })" 
                                                class="btn btn-sm btn-outline-primary" 
                                                onclick="event.stopPropagation()">
-                                                <i class="bi bi-arrow-right me-1"></i>??c th�m
+                                                <i class="bi bi-arrow-right me-1"></i>??c thêm
                                             </a>
                                         </div>
                                     </div>
@@ -173,10 +173,10 @@
             <div class="empty-icon mb-4">
                 <i class="bi bi-inbox" style="font-size: 5rem; color: #dee2e6;"></i>
             </div>
-            <h4 class="text-muted">Ch?a c� tin t?c m?i</h4>
-            <p class="text-muted">H? th?ng ch?a c� b?n tin n�o. Vui l�ng quay l?i sau!</p>
+            <h4 class="text-muted">Ch?a có tin t?c m?i</h4>
+            <p class="text-muted">H? th?ng ch?a có b?n tin nào. Vui lòng quay l?i sau!</p>
             <a href="@Url.Action("Index")" class="btn btn-primary mt-3">
-                <i class="bi bi-arrow-left me-2"></i>Quay v? trang tin t?c
+                <i class="bi bi-arrow-left me-2"></i>Quay về trang tin tức
             </a>
         </div>
     }

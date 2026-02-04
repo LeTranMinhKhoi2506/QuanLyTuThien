@@ -101,6 +101,34 @@
             closeLoading: function() { Swal.close(); }
         };
     </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <text>
+                Swal.fire({
+                    title: 'Thông báo',
+                    text: @Html.Raw(Json.Serialize(TempData["SuccessMessage"])),
+                    icon: 'success',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#198754'
+                });
+                </text>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <text>
+                Swal.fire({
+                    title: 'Lỗi',
+                    text: @Html.Raw(Json.Serialize(TempData["ErrorMessage"])),
+                    icon: 'error',
+                    confirmButtonText: 'Đóng',
+                    confirmButtonColor: '#dc3545'
+                });
+                </text>
+            }
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
