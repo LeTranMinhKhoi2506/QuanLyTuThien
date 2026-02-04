@@ -136,7 +136,7 @@
                                 </div>
                                 <div class="card-body">
                                     <h6 class="card-title mb-2">
-                                        <a href="@Url.Action("Details", "Campaign", new { id = campaign.CampaignId })" class="text-decoration-none text-dark stretched-link">
+                                        <a href="@Url.Action("MyDetails", "Campaign", new { id = campaign.CampaignId })" class="text-decoration-none text-dark stretched-link">
                                             @campaign.Title
                                         </a>
                                     </h6>
@@ -163,15 +163,10 @@
                                 </div>
                                 <div class="card-footer bg-white border-0 pt-0">
                                     <div class="d-flex gap-2 position-relative" style="z-index: 2;">
-                                        <a href="@Url.Action("Details", "Campaign", new { id = campaign.CampaignId })" class="btn btn-outline-primary btn-sm flex-fill">
+                                        <a href="@Url.Action("MyDetails", "Campaign", new { id = campaign.CampaignId })" class="btn btn-outline-primary btn-sm flex-fill">
                                             <i class="bi bi-eye me-1"></i>Xem
                                         </a>
-                                        @if (campaign.Status == "active" || campaign.Status == "draft")
-                                        {
-                                            <a href="@Url.Action("Edit", "Campaign", new { id = campaign.CampaignId })" class="btn btn-outline-secondary btn-sm flex-fill">
-                                                <i class="bi bi-pencil me-1"></i>Sửa
-                                            </a>
-                                        }
+                                        
                                     </div>
                                 </div>
                             </div>

@@ -1,4 +1,4 @@
-@model TuThien.Models.CampaignUpdate
+﻿@model TuThien.Models.CampaignUpdate
 
 @{
     ViewData["Title"] = Model.Title;
@@ -23,8 +23,8 @@
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Trang ch?</a></li>
-            <li class="breadcrumb-item"><a href="@Url.Action("Index")">Tin t?c</a></li>
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="@Url.Action("Index")">Tin tức</a></li>
             @if (Model.Campaign != null)
             {
                 <li class="breadcrumb-item">
@@ -47,13 +47,13 @@
                         @if (Model.Type == "financial_report")
                         {
                             <span class="badge badge-financial-large">
-                                <i class="bi bi-file-earmark-bar-graph me-2"></i>B�o c�o t�i ch�nh
+                                <i class="bi bi-file-earmark-bar-graph me-2"></i>Báo cáo tài chính
                             </span>
                         }
                         else
                         {
                             <span class="badge badge-general-large">
-                                <i class="bi bi-newspaper me-2"></i>Tin t?c chung
+                                <i class="bi bi-newspaper me-2"></i>Tin tức chung
                             </span>
                         }
                     </div>
@@ -76,10 +76,10 @@
 
                         <div class="article-actions">
                             <button class="btn btn-sm btn-outline-secondary" onclick="shareFacebook()">
-                                <i class="bi bi-facebook me-1"></i>Chia s?
+                                <i class="bi bi-facebook me-1"></i>Chia sẻ
                             </button>
                             <button class="btn btn-sm btn-outline-secondary" onclick="copyLink()">
-                                <i class="bi bi-link-45deg me-1"></i>Sao ch�p
+                                <i class="bi bi-link-45deg me-1"></i>Sao chép
                             </button>
                         </div>
                     </div>
@@ -111,7 +111,7 @@
                 {
                     <div class="image-gallery mt-4">
                         <h4 class="gallery-title">
-                            <i class="bi bi-images me-2"></i>H�nh ?nh k�m theo
+                            <i class="bi bi-images me-2"></i>Hình ảnh kèm theo
                         </h4>
                         <div class="row g-3">
                             @foreach (var img in images.Skip(1))
@@ -133,7 +133,7 @@
                 {
                     <div class="campaign-link-section mt-5 p-4 bg-light rounded-3">
                         <h5 class="mb-3">
-                            <i class="bi bi-link-45deg me-2"></i>Chi?n d?ch li�n quan
+                            <i class="bi bi-link-45deg me-2"></i>Chiến dịch liên quan
                         </h5>
                         <div class="campaign-link-card">
                             <div class="campaign-link-thumb">
@@ -152,7 +152,7 @@
                                 </p>
                                 <a href="@Url.Action("Details", "TrangChu", new { id = Model.Campaign.CampaignId })" 
                                    class="btn btn-primary btn-sm">
-                                    <i class="bi bi-arrow-right-circle me-2"></i>Xem chi?n d?ch
+                                    <i class="bi bi-arrow-right-circle me-2"></i>Xem chiến dịch
                                 </a>
                             </div>
                         </div>
@@ -162,7 +162,7 @@
                 <!-- Share Section -->
                 <div class="share-section mt-4">
                     <h5 class="mb-3">
-                        <i class="bi bi-share me-2"></i>Chia s? b�i vi?t
+                        <i class="bi bi-share me-2"></i>Chia sẻ bài viết
                     </h5>
                     <div class="share-buttons-group">
                         <button class="share-btn facebook" onclick="shareFacebook()">
@@ -179,7 +179,7 @@
                         </button>
                         <button class="share-btn copy" onclick="copyLink()">
                             <i class="bi bi-link-45deg"></i>
-                            Sao ch�p link
+                            Sao chép link
                         </button>
                     </div>
                 </div>
@@ -191,7 +191,7 @@
             <!-- Author Info -->
             <div class="author-card sticky-sidebar">
                 <h6 class="card-title">
-                    <i class="bi bi-person-badge me-2"></i>Ng??i ??ng
+                    <i class="bi bi-person-badge me-2"></i>Người dùng
                 </h6>
                 <div class="author-info">
                     <div class="author-avatar-large">
@@ -213,7 +213,7 @@
             {
                 <div class="related-news-card mt-4">
                     <h6 class="card-title">
-                        <i class="bi bi-newspaper me-2"></i>Tin li�n quan
+                        <i class="bi bi-newspaper me-2"></i>Tin liên quan
                     </h6>
                     <div class="related-news-list">
                         @foreach (var related in relatedUpdates)
@@ -304,7 +304,7 @@
 
         function copyLink() {
             navigator.clipboard.writeText(window.location.href).then(() => {
-                alert('?� sao ch�p link v�o clipboard!');
+                alert('?ã sao chép link vào clipboard!');
             });
         }
     </script>

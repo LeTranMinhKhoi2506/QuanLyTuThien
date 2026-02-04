@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TuThien.Models;
+using TuThien.Services;
 using BCrypt.Net;
 
 namespace TuThien.Controllers
@@ -9,11 +10,13 @@ namespace TuThien.Controllers
     {
         private readonly TuThienContext _context;
         private readonly ILogger<AccountController> _logger;
+        private readonly IEmailService _emailService;
 
-        public AccountController(TuThienContext context, ILogger<AccountController> logger)
+        public AccountController(TuThienContext context, ILogger<AccountController> logger, IEmailService emailService)
         {
             _context = context;
             _logger = logger;
+            _emailService = emailService;
         }
 
         // GET: /Account/Login
@@ -205,6 +208,172 @@ namespace TuThien.Controllers
             HttpContext.Session.Clear();
             _logger.LogInformation("User logged out");
             return RedirectToAction("Index", "TrangChu");
+        }
+
+        // GET: /Account/ForgotPassword
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        // POST: /Account/ForgotPassword
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            try
+            {
+                // Tìm user theo email
+                var user = await _context.Users
+                    .Include(u => u.UserProfile)
+                    .FirstOrDefaultAsync(u => u.Email == model.Email);
+
+                if (user == null)
+                {
+                    // Không tiết lộ email có tồn tại hay không vì lý do bảo mật
+                    // Nhưng vẫn hiển thị thông báo thành công
+                    TempData["SuccessMessage"] = "Nếu email tồn tại trong hệ thống, mã xác nhận đã được gửi đến email của bạn.";
+                    return RedirectToAction(nameof(Login));
+                }
+
+                // Tạo mã xác nhận ngẫu nhiên (6 chữ số)
+                var verificationCode = new Random().Next(100000, 999999).ToString();
+                
+                // Lưu mã xác nhận vào session với thời gian hết hạn
+                HttpContext.Session.SetString($"ResetCode_{user.Email}", verificationCode);
+                HttpContext.Session.SetString($"ResetEmail", user.Email);
+                HttpContext.Session.SetString($"ResetCodeExpiry", DateTime.Now.AddMinutes(15).ToString());
+
+                // Gửi email với mã xác nhận
+                var userName = user.UserProfile?.FullName ?? user.Username;
+                await _emailService.SendPasswordResetEmailAsync(user.Email, userName, verificationCode);
+                
+                _logger.LogInformation($"Password reset code sent to email {user.Email}");
+
+                TempData["SuccessMessage"] = $"Mã xác nhận đã được gửi đến email {MaskEmail(user.Email)}. Vui lòng kiểm tra hộp thư của bạn (bao gồm cả thư mục spam).";
+                return RedirectToAction(nameof(ResetPassword));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in ForgotPassword");
+                TempData["ErrorMessage"] = "Đã xảy ra lỗi khi gửi email. Vui lòng thử lại sau.";
+                return View(model);
+            }
+        }
+
+        // Helper method to mask email for privacy
+        private static string MaskEmail(string email)
+        {
+            if (string.IsNullOrEmpty(email)) return email;
+            
+            var parts = email.Split('@');
+            if (parts.Length != 2) return email;
+            
+            var username = parts[0];
+            var domain = parts[1];
+            
+            if (username.Length <= 2)
+                return email;
+            
+            var maskedUsername = username[0] + new string('*', username.Length - 2) + username[^1];
+            return $"{maskedUsername}@{domain}";
+        }
+
+        // GET: /Account/ResetPassword
+        [HttpGet]
+        public IActionResult ResetPassword()
+        {
+            var email = HttpContext.Session.GetString("ResetEmail");
+            if (string.IsNullOrEmpty(email))
+            {
+                TempData["ErrorMessage"] = "Phiên làm việc đã hết hạn. Vui lòng thử lại.";
+                return RedirectToAction(nameof(ForgotPassword));
+            }
+
+            return View();
+        }
+
+        // POST: /Account/ResetPassword
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(string verificationCode, string newPassword, string confirmPassword)
+        {
+            var email = HttpContext.Session.GetString("ResetEmail");
+            var savedCode = HttpContext.Session.GetString($"ResetCode_{email}");
+            var expiryString = HttpContext.Session.GetString("ResetCodeExpiry");
+
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(savedCode))
+            {
+                TempData["ErrorMessage"] = "Phiên làm việc đã hết hạn. Vui lòng thử lại.";
+                return RedirectToAction(nameof(ForgotPassword));
+            }
+
+            // Kiểm tra thời gian hết hạn
+            if (DateTime.TryParse(expiryString, out var expiry) && DateTime.Now > expiry)
+            {
+                HttpContext.Session.Remove($"ResetCode_{email}");
+                HttpContext.Session.Remove("ResetEmail");
+                HttpContext.Session.Remove("ResetCodeExpiry");
+                TempData["ErrorMessage"] = "Mã xác nhận đã hết hạn. Vui lòng yêu cầu mã mới.";
+                return RedirectToAction(nameof(ForgotPassword));
+            }
+
+            // Kiểm tra mã xác nhận
+            if (verificationCode != savedCode)
+            {
+                TempData["ErrorMessage"] = "Mã xác nhận không đúng.";
+                return View();
+            }
+
+            // Kiểm tra mật khẩu
+            if (newPassword != confirmPassword)
+            {
+                TempData["ErrorMessage"] = "Mật khẩu xác nhận không khớp.";
+                return View();
+            }
+
+            if (newPassword.Length < 6)
+            {
+                TempData["ErrorMessage"] = "Mật khẩu phải có ít nhất 6 ký tự.";
+                return View();
+            }
+
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+                if (user == null)
+                {
+                    TempData["ErrorMessage"] = "Không tìm thấy người dùng.";
+                    return RedirectToAction(nameof(ForgotPassword));
+                }
+
+                // Hash và cập nhật mật khẩu mới
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+                user.UpdatedAt = DateTime.Now;
+                await _context.SaveChangesAsync();
+
+                // Xóa session
+                HttpContext.Session.Remove($"ResetCode_{email}");
+                HttpContext.Session.Remove("ResetEmail");
+                HttpContext.Session.Remove("ResetCodeExpiry");
+
+                _logger.LogInformation($"Password reset successful for user {user.Username}");
+
+                TempData["SuccessMessage"] = "Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới.";
+                return RedirectToAction(nameof(Login));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in ResetPassword");
+                TempData["ErrorMessage"] = "Đã xảy ra lỗi khi đặt lại mật khẩu.";
+                return View();
+            }
         }
 
         // GET: /Account/Profile

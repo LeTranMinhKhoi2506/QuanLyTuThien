@@ -56,7 +56,7 @@ public class DonationController : Controller
     /// </summary>
     [HttpGet]
     [Route("my-donations")]
-    public async Task<IActionResult> MyDonations(int page = 1)
+    public async Task<IActionResult> MyDonations()
     {
         var userId = GetCurrentUserId();
         if (!userId.HasValue)
@@ -64,47 +64,20 @@ public class DonationController : Controller
             return RedirectToAction("Login", "Account", new { returnUrl = "/my-donations" });
         }
 
-        // 1. Get all donations for grouping (Completed only for statistics generally, but maybe all for history?)
-        // Let's get all non-failed/pending donations for "Contributed Campaigns" statistics? 
-        // Usually we only count successful donations.
-        var allDonations = await _context.Donations
+        var donations = await _context.Donations
             .Include(d => d.Campaign)
-                .ThenInclude(c => c.Category)
             .Where(d => d.UserId == userId.Value)
+            .OrderByDescending(d => d.DonatedAt)
             .ToListAsync();
 
-        var successfulDonations = allDonations.Where(d => d.PaymentStatus == "success" || d.PaymentStatus == "completed").ToList();
+        // Thống kê
+        ViewBag.TotalDonations = donations.Count;
+        ViewBag.SuccessfulDonations = donations.Count(d => d.PaymentStatus == "success");
+        ViewBag.TotalAmount = donations.Where(d => d.PaymentStatus == "success").Sum(d => d.Amount);
+        ViewBag.CampaignsSupported = donations.Where(d => d.PaymentStatus == "success")
+            .Select(d => d.CampaignId).Distinct().Count();
 
-        // Group for "Chiến dịch đã đóng góp" tab
-        var contributedCampaigns = successfulDonations
-            .GroupBy(d => d.CampaignId)
-            .Select(g => new ContributedCampaignViewModel
-            {
-                Campaign = g.First().Campaign,
-                TotalDonated = g.Sum(d => d.Amount)
-            })
-            .OrderByDescending(x => x.TotalDonated)
-            .ToList();
-
-        // 2. Get pagination for "Lịch sử giao dịch" tab (All statuses)
-        int pageSize = 10;
-        var donationHistory = allDonations
-            .OrderByDescending(d => d.DonatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
-        
-        var totalItems = allDonations.Count;
-
-        var viewModel = new MyDonationsViewModel
-        {
-            ContributedCampaigns = contributedCampaigns,
-            DonationHistory = donationHistory,
-            CurrentPage = page,
-            TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
-        };
-
-        return View(viewModel);
+        return View(donations);
     }
 
 
@@ -966,35 +939,5 @@ public class DonationController : Controller
         }
 
         await _context.SaveChangesAsync();
-    }
-
-    /// <summary>
-    /// Lịch sử quyên góp của người dùng
-    /// Route: /my-donations
-    /// </summary>
-    [HttpGet]
-    [Route("my-donations")]
-    public async Task<IActionResult> MyDonations()
-    {
-        var userId = GetCurrentUserId();
-        if (!userId.HasValue)
-        {
-            return RedirectToAction("Login", "Account", new { returnUrl = "/my-donations" });
-        }
-
-        var donations = await _context.Donations
-            .Include(d => d.Campaign)
-            .Where(d => d.UserId == userId.Value)
-            .OrderByDescending(d => d.DonatedAt)
-            .ToListAsync();
-
-        // Thống kê
-        ViewBag.TotalDonations = donations.Count;
-        ViewBag.SuccessfulDonations = donations.Count(d => d.PaymentStatus == "success");
-        ViewBag.TotalAmount = donations.Where(d => d.PaymentStatus == "success").Sum(d => d.Amount);
-        ViewBag.CampaignsSupported = donations.Where(d => d.PaymentStatus == "success")
-            .Select(d => d.CampaignId).Distinct().Count();
-
-        return View(donations);
     }
 }

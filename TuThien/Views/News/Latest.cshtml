@@ -13,15 +13,15 @@
         <div class="row align-items-center">
             <div class="col-md-8">
                 <h1 class="page-title">
-                    <i class="bi bi-clock-history me-3"></i>Tin t?c m?i nh?t
+                    <i class="bi bi-clock-history me-3"></i>Tin tức mới nhất
                 </h1>
                 <p class="page-subtitle">
-                    Nh?ng c?p nh?t m?i nh?t t? các chi?n d?ch t? thi?n
+                    Những cập nhật mới nhất từ các chiến dịch từ thiện
                 </p>
             </div>
             <div class="col-md-4 text-md-end">
                 <a href="@Url.Action("Index")" class="btn btn-outline-primary">
-                    <i class="bi bi-arrow-left me-2"></i>Quay l?i t?t c? tin t?c
+                    <i class="bi bi-arrow-left me-2"></i>Quay lại tất cả tin tức
                 </a>
             </div>
         </div>
@@ -30,16 +30,16 @@
     <!-- Quick Filter Tabs -->
     <div class="quick-filters mb-4">
         <a href="@Url.Action("Index")" class="filter-tab">
-            <i class="bi bi-collection me-2"></i>T?t c?
+            <i class="bi bi-collection me-2"></i>Tất cả
         </a>
         <a href="@Url.Action("Index", new { type = "general" })" class="filter-tab">
-            <i class="bi bi-newspaper me-2"></i>Tin t?c chung
+            <i class="bi bi-newspaper me-2"></i>Tin tức chung
         </a>
         <a href="@Url.Action("Index", new { type = "financial_report" })" class="filter-tab">
             <i class="bi bi-bar-chart-line me-2"></i>Báo cáo tài chính
         </a>
         <a href="@Url.Action("Latest")" class="filter-tab active">
-            <i class="bi bi-clock-history me-2"></i>M?i nh?t
+            <i class="bi bi-clock-history me-2"></i>Mới nhất
         </a>
     </div>
 
@@ -114,7 +114,7 @@
                                             else
                                             {
                                                 <span class="badge badge-general">
-                                                    <i class="bi bi-newspaper me-1"></i>Tin t?c
+                                                    <i class="bi bi-newspaper me-1"></i>Tin tức
                                                 </span>
                                             }
                                         </div>
@@ -154,7 +154,7 @@
                                             <a href="@Url.Action("Details", new { id = update.UpdateId })" 
                                                class="btn btn-sm btn-outline-primary" 
                                                onclick="event.stopPropagation()">
-                                                <i class="bi bi-arrow-right me-1"></i>??c thêm
+                                                <i class="bi bi-arrow-right me-1"></i>Đọc thêm
                                             </a>
                                         </div>
                                     </div>

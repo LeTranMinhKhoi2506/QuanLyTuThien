@@ -31,7 +31,7 @@
                     <!-- Dropdown Đóng góp -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-heart me-1"></i>Đóng góp
+                            <i class="me-1"></i>Đóng góp
                         </a>
                         <ul class="dropdown-menu dropdown-donate">
                             <li class="dropdown-header">
@@ -66,12 +66,46 @@
                         </ul>
                     </li>
                     
-                    <li class="nav-item dropdown hover-dropdown">
-                        <a class="nav-link dropdown-toggle" asp-controller="Campaign" asp-action="Index" id="campaignDropdown" aria-expanded="false">
-                            Chiến dịch
+                    <!-- Dropdown Chiến dịch -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="me-1"></i>Chiến dịch
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="campaignDropdown">
+                        <ul class="dropdown-menu dropdown-campaign">
+                            <li class="dropdown-header">
+                                <i class="bi bi-megaphone me-2"></i>Chiến dịch từ thiện
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="@Url.Action("Index", "Campaign")">
+                                    <i class="bi bi-list-ul me-2"></i>
+                                    <div>
+                                        <strong>Tất cả chiến dịch</strong>
+                                        <small class="d-block text-muted">Xem danh sách chiến dịch</small>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="@Url.Action("MyCampaigns", "Campaign")">
+                                    <i class="bi bi-heart me-2"></i>
+                                    <div>
+                                        <strong>Chiến dịch của tôi</strong>
+                                        <small class="d-block text-muted">Quản lý chiến dịch đã tạo</small>
+                                    </div>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="dropdown-header">
+                                <i class="bi bi-folder me-2"></i>Danh mục
+                            </li>
                             @await Component.InvokeAsync("Sidebar")
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-primary fw-semibold" href="@Url.Action("Create", "Campaign")">
+                                    <i class="bi bi-plus-circle me-2"></i>
+                                    Tạo chiến dịch mới
+                                </a>
+                            </li>
                         </ul>
                     </li>
                 </ul>
@@ -82,7 +116,7 @@
                             <i class="bi bi-search text-muted"></i>
                         </span>
                         <input class="form-control border-start-0 ps-0" type="search" id="quickSearchInput" 
-                               placeholder="Tìm kiếm nhanh..." aria-label="Tìm kiếm" autocomplete="off" />
+                               placeholder="Tìm kiếm chiến dịch..." aria-label="Tìm kiếm" autocomplete="off" />
                     </div>
                     <div id="quickSearchResults" class="dropdown-menu w-100 shadow-lg" style="display: none; max-height: 400px; overflow-y: auto;">
                         <!-- Results will be populated by JS -->
@@ -184,6 +218,70 @@
             display: block;
             margin-top: 0;
         }
+    }
+    
+    /* Donation and Campaign Dropdown Styles */
+    .dropdown-donate,
+    .dropdown-campaign {
+        min-width: 280px;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        border: none;
+        padding: 0.5rem 0;
+    }
+    
+    .dropdown-donate .dropdown-item,
+    .dropdown-campaign .dropdown-item {
+        padding: 0.75rem 1rem;
+        display: flex;
+        align-items: center;
+        transition: all 0.2s;
+    }
+    
+    .dropdown-donate .dropdown-item:hover,
+    .dropdown-campaign .dropdown-item:hover {
+        background-color: #f8f9fa;
+        padding-left: 1.25rem;
+    }
+    
+    .dropdown-donate .dropdown-item i,
+    .dropdown-campaign .dropdown-item i {
+        font-size: 1.25rem;
+        width: 32px;
+        flex-shrink: 0;
+    }
+    
+    .dropdown-donate .dropdown-item div,
+    .dropdown-campaign .dropdown-item div {
+        flex: 1;
+    }
+    
+    .dropdown-donate .dropdown-item strong,
+    .dropdown-campaign .dropdown-item strong {
+        display: block;
+        font-size: 0.9rem;
+        margin-bottom: 0.1rem;
+    }
+    
+    .dropdown-donate .dropdown-item small,
+    .dropdown-campaign .dropdown-item small {
+        font-size: 0.75rem;
+        line-height: 1.2;
+    }
+    
+    .dropdown-donate .dropdown-header,
+    .dropdown-campaign .dropdown-header {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+    }
+    
+    .dropdown-donate .dropdown-divider,
+    .dropdown-campaign .dropdown-divider {
+        margin: 0.5rem 0;
     }
     
     /* Quick Search Styles */
@@ -405,8 +503,116 @@ document.addEventListener('DOMContentLoaded', function() {
     let searchTimeout;
     searchInput.addEventListener('input', function() {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => performSearch(this.value.trim()), 150);
+        const query = this.value.trim();
+        
+        if (query.length === 0) {
+            searchResults.style.display = 'none';
+            return;
+        }
+        
+        if (query.length < 2) {
+            searchResults.innerHTML = '<div class="text-center py-3 text-muted small">Nhập ít nhất 2 ký tự để tìm kiếm</div>';
+            searchResults.style.display = 'block';
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            searchCampaigns(query);
+        }, 300);
     });
+    
+    // Tìm kiếm chiến dịch qua API
+    async function searchCampaigns(query) {
+        try {
+            searchResults.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>';
+            searchResults.style.display = 'block';
+            
+            const response = await fetch(`/api/campaigns/search?q=${encodeURIComponent(query)}&limit=5`);
+            const data = await response.json();
+            
+            if (!data.success || !data.campaigns || data.campaigns.length === 0) {
+                searchResults.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="bi bi-search display-6 d-block mb-2 text-muted"></i>
+                        <span class="text-muted">Không tìm thấy chiến dịch nào</span>
+                    </div>
+                    <div class="px-3 py-2 border-top">
+                        <a href="/Campaign?search=${encodeURIComponent(query)}" class="btn btn-outline-primary btn-sm w-100">
+                            <i class="bi bi-search me-1"></i>Xem tất cả kết quả
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div class="search-category">Chiến dịch</div>';
+            let itemIndex = 0;
+            
+            data.campaigns.forEach(campaign => {
+                const statusColor = campaign.status === 'active' ? 'success' : 'secondary';
+                const statusText = campaign.status === 'active' ? 'Đang hoạt động' : 'Đã kết thúc';
+                const progress = campaign.targetAmount > 0 
+                    ? Math.round((campaign.currentAmount / campaign.targetAmount) * 100) 
+                    : 0;
+                
+                html += `
+                    <div class="search-item" data-index="${itemIndex}" data-url="/Campaign/Details/${campaign.campaignId}">
+                        <div class="search-icon bg-${statusColor} bg-opacity-10 text-${statusColor}">
+                            <i class="bi bi-megaphone"></i>
+                        </div>
+                        <div class="search-info">
+                            <div class="search-title">${highlightMatch(campaign.title, query)}</div>
+                            <div class="search-desc">
+                                <span class="badge bg-${statusColor} bg-opacity-10 text-${statusColor} me-1" style="font-size: 10px;">${statusText}</span>
+                                <span class="text-muted" style="font-size: 11px;">${progress}% - ${formatMoney(campaign.currentAmount)}đ</span>
+                            </div>
+                        </div>
+                        <span class="search-shortcut">Enter</span>
+                    </div>
+                `;
+                itemIndex++;
+            });
+            
+            // Thêm link xem tất cả
+            html += `
+                <div class="px-3 py-2 border-top bg-light">
+                    <a href="/Campaign?search=${encodeURIComponent(query)}" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-search me-1"></i>Xem tất cả ${data.totalCount} kết quả
+                    </a>
+                </div>
+            `;
+            
+            searchResults.innerHTML = html;
+            searchResults.style.display = 'block';
+            selectedIndex = -1;
+            
+            // Gắn sự kiện click
+            document.querySelectorAll('.search-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    window.location.href = this.dataset.url;
+                });
+            });
+            
+        } catch (error) {
+            console.error('Search error:', error);
+            searchResults.innerHTML = `
+                <div class="text-center py-4 text-danger">
+                    <i class="bi bi-exclamation-circle"></i>
+                    <span class="d-block mt-2 small">Có lỗi xảy ra khi tìm kiếm</span>
+                </div>
+            `;
+        }
+    }
+    
+    // Format money
+    function formatMoney(amount) {
+        if (amount >= 1000000) {
+            return (amount / 1000000).toFixed(1) + 'M';
+        } else if (amount >= 1000) {
+            return (amount / 1000).toFixed(0) + 'K';
+        }
+        return amount.toString();
+    }
     
     // Sự kiện phím
     searchInput.addEventListener('keydown', function(e) {

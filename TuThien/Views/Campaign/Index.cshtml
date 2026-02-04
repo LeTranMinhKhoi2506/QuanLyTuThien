@@ -12,6 +12,33 @@
         <p class="text-muted">Chung tay giúp đỡ những hoàn cảnh khó khăn</p>
     </div>
 
+    <!-- Search Bar -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-8">
+            <div class="input-group input-group-lg shadow-sm">
+                <span class="input-group-text bg-white border-end-0">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" class="form-control border-start-0 ps-0" id="campaignSearchInput" 
+                       placeholder="Tìm kiếm chiến dịch..." value="@ViewBag.SearchQuery">
+                <button class="btn btn-primary" type="button" id="searchButton">
+                    <i class="bi bi-search me-1"></i>Tìm kiếm
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(ViewBag.SearchQuery))
+            {
+                <div class="mt-2">
+                    <small class="text-muted">
+                        Kết quả tìm kiếm cho: <strong>"@ViewBag.SearchQuery"</strong>
+                        <a href="@Url.Action("Index", "Campaign")" class="ms-2 text-decoration-none">
+                            <i class="bi bi-x-circle"></i> Xóa tìm kiếm
+                        </a>
+                    </small>
+                </div>
+            }
+        </div>
+    </div>
+
     <!-- Category Tabs -->
     <div class="d-flex justify-content-center mb-5 overflow-auto">
         <ul class="nav nav-pills flex-nowrap" id="campaignTabs" role="tablist">
@@ -45,7 +72,7 @@
     <script>
         $(document).ready(function () {
             // Function to load campaigns
-            function loadCampaigns(categoryId) {
+            function loadCampaigns(categoryId, searchQuery) {
                 // Show loading spinner
                 $('#campaign-list-container').html(
                     '<div class="text-center py-5">' +
@@ -58,7 +85,10 @@
                 $.ajax({
                     url: '@Url.Action("GetCampaigns", "Campaign")',
                     type: 'GET',
-                    data: { categoryId: categoryId },
+                    data: { 
+                        categoryId: categoryId,
+                        search: searchQuery 
+                    },
                     success: function (data) {
                         // Fade out loading and fade in content
                         $('#campaign-list-container').hide().html(data).fadeIn(300);
@@ -82,21 +112,19 @@
                 return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
             }
 
-            // Get categoryId from URL
+            // Get parameters from URL
             var urlCategoryId = getUrlParameter('categoryId');
+            var urlSearch = getUrlParameter('search') || '@ViewBag.SearchQuery';
 
             // Initial load
             if (urlCategoryId) {
                 // Activate the correct tab
                 $('#campaignTabs .nav-link').removeClass('active');
                 $('#tab-' + urlCategoryId).addClass('active');
-                
-                // Load data
-                loadCampaigns(urlCategoryId);
-            } else {
-                // Default load (All)
-                loadCampaigns('');
             }
+            
+            // Load data with search if provided
+            loadCampaigns(urlCategoryId, urlSearch);
 
             // Tab click event
             $('#campaignTabs .nav-link').click(function () {
@@ -107,9 +135,25 @@
                 $('#campaignTabs .nav-link').removeClass('active');
                 $(this).addClass('active');
 
-                // Load data
+                // Load data with current search
                 var catId = $(this).data('id');
-                loadCampaigns(catId);
+                var search = $('#campaignSearchInput').val();
+                loadCampaigns(catId, search);
+            });
+
+            // Search button click
+            $('#searchButton').click(function() {
+                var search = $('#campaignSearchInput').val().trim();
+                if (search) {
+                    window.location.href = '@Url.Action("Index", "Campaign")?search=' + encodeURIComponent(search);
+                }
+            });
+
+            // Search on Enter key
+            $('#campaignSearchInput').keypress(function(e) {
+                if (e.which === 13) {
+                    $('#searchButton').click();
+                }
             });
         });
     </script>
